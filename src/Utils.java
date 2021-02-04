@@ -1,3 +1,6 @@
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+
 import Jama.Matrix;
 
 public class Utils {
@@ -34,6 +37,29 @@ public class Utils {
 		t = t.times(1 / t.normF());
 
 		return t;
+	}
+
+	public static Matrix MatToMatrix(Mat mat) {
+		double[] buffer = new double[mat.rows() * mat.cols()];
+		mat.get(0, 0, buffer);
+		Matrix matrix = new Matrix(mat.rows(), mat.cols());
+		for (int i = 0; i < matrix.getRowDimension(); i++) {
+			for (int j = 0; j < matrix.getColumnDimension(); j++) {
+				matrix.set(i, j, buffer[i * mat.cols() + j]);
+			}
+		}
+
+		return matrix;
+	}
+
+	public static Mat MatrixToMat(Matrix matrix) {
+		Mat mat = new Mat(matrix.getRowDimension(), matrix.getColumnDimension(), CvType.CV_64F);
+		for (int row = 0; row < matrix.getRowDimension(); row++) {
+			for (int col = 0; col < matrix.getColumnDimension(); col++) {
+				mat.put(row, col, matrix.get(row, col));
+			}
+		}
+		return mat;
 	}
 
 }

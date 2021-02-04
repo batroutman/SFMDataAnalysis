@@ -4,6 +4,8 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
 
+import Jama.Matrix;
+
 public class SFMDataAnalysis {
 
 	public static void main(String[] args) {
@@ -17,6 +19,7 @@ public class SFMDataAnalysis {
 
 		VirtualEnvironment mock = new VirtualEnvironment();
 		mock.getSecondaryCamera().setCx(1);
+		mock.getSecondaryCamera().setCy(1);
 		mock.generatePoints(0, 1000, -10, 10, -10, 10, -10, 10);
 
 		List<Correspondence2D2D> correspondences = mock.getCorrespondences();
@@ -26,6 +29,13 @@ public class SFMDataAnalysis {
 		}
 
 		Mat image = mock.getPrimaryImage();
+		Matrix trueFun = mock.getTrueFundamentalMatrix();
+		Matrix estFun = mock.estimateFundamentalMatrix(correspondences);
+		Matrix estPose = mock.getPoseFromFundamentalMatrix(estFun, correspondences);
+
+		trueFun.print(50, 30);
+		estFun.print(50, 30);
+		estPose.print(50, 30);
 
 		while (true) {
 			HighGui.imshow("test", image);
