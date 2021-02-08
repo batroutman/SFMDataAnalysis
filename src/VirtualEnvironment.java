@@ -29,20 +29,108 @@ public class VirtualEnvironment {
 			double maxZ) {
 
 		this.worldPoints.clear();
-		Random random = new Random(seed);
 
-		double Z_RANGE = maxZ - minZ;
-		double Y_RANGE = maxY - minY;
-		double X_RANGE = maxX - minX;
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 0, 1, 1, 1, 0));
+		this.worldPoints.addAll(this.getPointsInSphere(seed, 100, 0, 0, 0, 0.5, 0.5));
+
+//		Random random = new Random(seed);
+//
+//		double Z_RANGE = maxZ - minZ;
+//		double Y_RANGE = maxY - minY;
+//		double X_RANGE = maxX - minX;
+//
+//		for (int i = 0; i < numPoints; i++) {
+//			Matrix point = new Matrix(4, 1);
+//			point.set(0, 0, random.nextDouble() * X_RANGE + minX);
+//			point.set(1, 0, random.nextDouble() * Y_RANGE + minY);
+//			point.set(2, 0, random.nextDouble() * Z_RANGE + minZ);
+//			point.set(3, 0, 1);
+//			this.worldPoints.add(point);
+//		}
+
+	}
+
+	public List<Matrix> getPointsInPlane(int seed, int numPoints, double x0, double y0, double z0, double normalX,
+			double normalY, double normalZ, double xRange, double yRange, double zRange, double noiseRange) {
+
+		List<Matrix> points = new ArrayList<Matrix>();
+
+		// calculate minimum values for each dimension
+		double xMin = x0 - xRange / 2;
+		double yMin = y0 - yRange / 2;
+		double zMin = z0 - zRange / 2;
+
+		Random rand = new Random(seed);
+
+		// generate points
+		for (int i = 0; i < numPoints; i++) {
+
+			double x = rand.nextDouble() * xRange + xMin;
+			double y = rand.nextDouble() * yRange + yMin;
+			double z = rand.nextDouble() * zRange + zMin;
+
+			// correct one of the coordinates
+			if (normalZ != 0) {
+				z = (-normalX * (x - x0) - normalY * (y - y0)) / normalZ + z0;
+			} else if (normalX != 0) {
+				x = (-normalZ * (z - z0) - normalY * (y - y0)) / normalX + x0;
+			} else if (normalY != 0) {
+				y = (-normalZ * (z - z0) - normalX * (x - x0)) / normalY + y0;
+			}
+
+			double noiseX = rand.nextDouble() * noiseRange - noiseRange / 2;
+			double noiseY = rand.nextDouble() * noiseRange - noiseRange / 2;
+			double noiseZ = rand.nextDouble() * noiseRange - noiseRange / 2;
+
+			x += noiseX;
+			y += noiseY;
+			z += noiseZ;
+
+			Matrix p = new Matrix(4, 1);
+			p.set(0, 0, x);
+			p.set(1, 0, y);
+			p.set(2, 0, z);
+			p.set(3, 0, 1);
+			points.add(p);
+
+		}
+
+		return points;
+
+	}
+
+	public List<Matrix> getPointsInSphere(int seed, int numPoints, double x0, double y0, double z0, double radius,
+			double noiseRange) {
+
+		List<Matrix> points = new ArrayList<Matrix>();
+
+		Random rand = new Random(seed);
 
 		for (int i = 0; i < numPoints; i++) {
-			Matrix point = new Matrix(4, 1);
-			point.set(0, 0, random.nextDouble() * X_RANGE + minX);
-			point.set(1, 0, random.nextDouble() * Y_RANGE + minY);
-			point.set(2, 0, random.nextDouble() * Z_RANGE + minZ);
-			point.set(3, 0, 1);
-			this.worldPoints.add(point);
+			double theta = rand.nextDouble() * 2 * Math.PI;
+			double phi = rand.nextDouble() * Math.PI;
+
+			double x = radius * Math.cos(theta) * Math.sin(phi) + x0;
+			double y = radius * Math.sin(theta) * Math.sin(phi) + y0;
+			double z = radius * Math.cos(phi) + z0;
+
+			double noiseX = rand.nextDouble() * noiseRange - noiseRange / 2;
+			double noiseY = rand.nextDouble() * noiseRange - noiseRange / 2;
+			double noiseZ = rand.nextDouble() * noiseRange - noiseRange / 2;
+
+			x += noiseX;
+			y += noiseY;
+			z += noiseZ;
+
+			Matrix p = new Matrix(4, 1);
+			p.set(0, 0, x);
+			p.set(1, 0, y);
+			p.set(2, 0, z);
+			p.set(3, 0, 1);
+			points.add(p);
 		}
+
+		return points;
 
 	}
 
@@ -160,6 +248,8 @@ public class VirtualEnvironment {
 		camCenter.set(2, 0, this.primaryCamera.getCz());
 		camCenter.set(3, 0, 1);
 		Matrix epipole = Pprime.times(camCenter); // homogenize?
+		Utils.pl("epipole: ");
+		epipole.print(15, 5);
 
 		Matrix et = new Matrix(3, 3);
 		et.set(0, 1, -epipole.get(2, 0));
