@@ -30,8 +30,8 @@ public class VirtualEnvironment {
 
 		this.worldPoints.clear();
 
-		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 0, 1, 1, 1, 0));
-		this.worldPoints.addAll(this.getPointsInSphere(seed, 100, 0, 0, 0, 0.5, 0.5));
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 1, 2, 2, 2, 0));
+//		this.worldPoints.addAll(this.getPointsInSphere(seed, 1000, 0, 0, 0, 0.5, 0.5));
 
 //		Random random = new Random(seed);
 //
@@ -230,40 +230,247 @@ public class VirtualEnvironment {
 		return correspondences;
 	}
 
+//	public Matrix getTrueHomography() {
+//
+//	}
+
+	public Mat estimateHomography(List<Correspondence2D2D> correspondences) {
+
+		ArrayList<Point> matchedKeyframePoints = new ArrayList<Point>();
+		ArrayList<Point> matchedPoints = new ArrayList<Point>();
+
+		for (int i = 0; i < correspondences.size(); i++) {
+			Correspondence2D2D c = correspondences.get(i);
+			Point point1 = new Point();
+			Point point2 = new Point();
+			point1.x = c.getX0();
+			point1.y = c.getY0();
+			point2.x = c.getX1();
+			point2.y = c.getY1();
+			matchedKeyframePoints.add(point1);
+			matchedPoints.add(point2);
+		}
+
+		// compute homography
+		MatOfPoint2f keyframeMat = new MatOfPoint2f();
+		MatOfPoint2f matKeypoints = new MatOfPoint2f();
+		keyframeMat.fromList(matchedKeyframePoints);
+		matKeypoints.fromList(matchedPoints);
+		Mat homography = Calib3d.findHomography(keyframeMat, matKeypoints);
+
+		return homography;
+
+	}
+
+	public Matrix getPoseFromHomography(Mat homography, List<Correspondence2D2D> correspondences) {
+
+		Mat intrinsics = this.cameraParams.getKMat();
+		List<Mat> rotations = new ArrayList<Mat>();
+		List<Mat> translations = new ArrayList<Mat>();
+		List<Mat> normals = new ArrayList<Mat>();
+		Calib3d.decomposeHomographyMat(homography, intrinsics, rotations, translations, normals);
+
+		Matrix E = this.selectHomographySolution(rotations, translations, correspondences);
+		return E;
+	}
+
+	public Matrix selectHomographySolution(List<Mat> rotations, List<Mat> translations,
+			List<Correspondence2D2D> correspondences) {
+
+		Matrix pose = this.primaryCamera.getHomogeneousMatrix();
+
+		Matrix R1 = Utils.MatToMatrix(rotations.get(0));
+		Matrix R2 = Utils.MatToMatrix(rotations.get(1));
+		Matrix R3 = Utils.MatToMatrix(rotations.get(2));
+		Matrix R4 = Utils.MatToMatrix(rotations.get(3));
+
+		Matrix t1 = Utils.MatToMatrix(translations.get(0));
+		Matrix t2 = Utils.MatToMatrix(translations.get(1));
+		Matrix t3 = Utils.MatToMatrix(translations.get(2));
+		Matrix t4 = Utils.MatToMatrix(translations.get(3));
+
+		// set up extrinsic matrices (all possible options)
+		Matrix E1 = Matrix.identity(4, 4);
+		Matrix E2 = Matrix.identity(4, 4);
+		Matrix E3 = Matrix.identity(4, 4);
+		Matrix E4 = Matrix.identity(4, 4);
+
+		E1.set(0, 0, R1.get(0, 0));
+		E1.set(0, 1, R1.get(0, 1));
+		E1.set(0, 2, R1.get(0, 2));
+		E1.set(1, 0, R1.get(1, 0));
+		E1.set(1, 1, R1.get(1, 1));
+		E1.set(1, 2, R1.get(1, 2));
+		E1.set(2, 0, R1.get(2, 0));
+		E1.set(2, 1, R1.get(2, 1));
+		E1.set(2, 2, R1.get(2, 2));
+		E1.set(0, 3, t1.get(0, 0));
+		E1.set(1, 3, t1.get(1, 0));
+		E1.set(2, 3, t1.get(2, 0));
+
+		E2.set(0, 0, R2.get(0, 0));
+		E2.set(0, 1, R2.get(0, 1));
+		E2.set(0, 2, R2.get(0, 2));
+		E2.set(1, 0, R2.get(1, 0));
+		E2.set(1, 1, R2.get(1, 1));
+		E2.set(1, 2, R2.get(1, 2));
+		E2.set(2, 0, R2.get(2, 0));
+		E2.set(2, 1, R2.get(2, 1));
+		E2.set(2, 2, R2.get(2, 2));
+		E2.set(0, 3, t2.get(0, 0));
+		E2.set(1, 3, t2.get(1, 0));
+		E2.set(2, 3, t2.get(2, 0));
+
+		E3.set(0, 0, R3.get(0, 0));
+		E3.set(0, 1, R3.get(0, 1));
+		E3.set(0, 2, R3.get(0, 2));
+		E3.set(1, 0, R3.get(1, 0));
+		E3.set(1, 1, R3.get(1, 1));
+		E3.set(1, 2, R3.get(1, 2));
+		E3.set(2, 0, R3.get(2, 0));
+		E3.set(2, 1, R3.get(2, 1));
+		E3.set(2, 2, R3.get(2, 2));
+		E3.set(0, 3, t3.get(0, 0));
+		E3.set(1, 3, t3.get(1, 0));
+		E3.set(2, 3, t3.get(2, 0));
+
+		E4.set(0, 0, R4.get(0, 0));
+		E4.set(0, 1, R4.get(0, 1));
+		E4.set(0, 2, R4.get(0, 2));
+		E4.set(1, 0, R4.get(1, 0));
+		E4.set(1, 1, R4.get(1, 1));
+		E4.set(1, 2, R4.get(1, 2));
+		E4.set(2, 0, R4.get(2, 0));
+		E4.set(2, 1, R4.get(2, 1));
+		E4.set(2, 2, R4.get(2, 2));
+		E4.set(0, 3, t4.get(0, 0));
+		E4.set(1, 3, t4.get(1, 0));
+		E4.set(2, 3, t4.get(2, 0));
+
+		Utils.pl("E1:");
+		E1.print(15, 5);
+		Utils.pl("E2:");
+		E2.print(15, 5);
+		Utils.pl("E3:");
+		E3.print(15, 5);
+		Utils.pl("E4:");
+		E4.print(15, 5);
+
+		int[] scores = { 0, 0, 0, 0 };
+		double[] reprojErrors = { 0, 0, 0, 0 };
+
+		for (Correspondence2D2D c : correspondences) {
+
+			// triangulated points
+			Matrix X1 = triangulate(E1, pose, c);
+			Matrix X2 = triangulate(E2, pose, c);
+			Matrix X3 = triangulate(E3, pose, c);
+			Matrix X4 = triangulate(E4, pose, c);
+
+			// reprojected to second frame
+			Matrix b1 = this.cameraParams.getK4x4().times(E1).times(pose).times(X1);
+			Matrix b2 = this.cameraParams.getK4x4().times(E2).times(pose).times(X2);
+			Matrix b3 = this.cameraParams.getK4x4().times(E3).times(pose).times(X3);
+			Matrix b4 = this.cameraParams.getK4x4().times(E4).times(pose).times(X4);
+
+			// get reprojection errors
+			Matrix b1Normalized = b1.times(1 / b1.get(2, 0)).getMatrix(0, 1, 0, 0);
+			Matrix b2Normalized = b2.times(1 / b2.get(2, 0)).getMatrix(0, 1, 0, 0);
+			Matrix b3Normalized = b3.times(1 / b3.get(2, 0)).getMatrix(0, 1, 0, 0);
+			Matrix b4Normalized = b4.times(1 / b4.get(2, 0)).getMatrix(0, 1, 0, 0);
+			Matrix trueProj = new Matrix(2, 1);
+			trueProj.set(0, 0, c.getX1());
+			trueProj.set(1, 0, c.getY1());
+			reprojErrors[0] += trueProj.minus(b1Normalized).normF();
+			reprojErrors[1] += trueProj.minus(b2Normalized).normF();
+			reprojErrors[2] += trueProj.minus(b3Normalized).normF();
+			reprojErrors[3] += trueProj.minus(b4Normalized).normF();
+
+			if (b1.get(2, 0) > 0) {
+				Matrix a1 = pose.times(X1);
+				if (a1.get(2, 0) > 0) {
+					scores[0]++;
+				}
+			}
+
+			if (b2.get(2, 0) > 0) {
+				Matrix a2 = pose.times(X2);
+				if (a2.get(2, 0) > 0) {
+					scores[1]++;
+				}
+			}
+
+			if (b3.get(2, 0) > 0) {
+				Matrix a3 = pose.times(X3);
+				if (a3.get(2, 0) > 0) {
+					scores[2]++;
+				}
+			}
+
+			if (b4.get(2, 0) > 0) {
+				Matrix a4 = pose.times(X4);
+				if (a4.get(2, 0) > 0) {
+					scores[3]++;
+				}
+			}
+		}
+
+		// narrow down options based on chirality (should have 2 hypotheses
+		// remaining)
+		ArrayList<Integer> bestHypothesesInd = new ArrayList<Integer>();
+		double avgScore = (scores[0] + scores[1] + scores[2] + scores[3]) / 4.0;
+
+		for (int i = 0; i < scores.length; i++) {
+			int score = scores[i];
+			if (score > avgScore) {
+				bestHypothesesInd.add(i);
+			}
+		}
+
+		// pick hypothesis based on reprojection error
+		int lowestReprojInd = bestHypothesesInd.get(0);
+		for (int i = 1; i < bestHypothesesInd.size(); i++) {
+			if (reprojErrors[bestHypothesesInd.get(i)] < reprojErrors[lowestReprojInd]) {
+				lowestReprojInd = bestHypothesesInd.get(i);
+			}
+		}
+
+		// finally, set the correct decomposition
+		Matrix solution = E1;
+		if (lowestReprojInd == 0) {
+			solution = E1;
+		} else if (lowestReprojInd == 1) {
+			solution = E2;
+		} else if (lowestReprojInd == 2) {
+			solution = E3;
+		} else if (lowestReprojInd == 3) {
+			solution = E4;
+		}
+
+		return solution;
+
+	}
+
 	public Matrix getTrueFundamentalMatrix() {
-		Matrix Pprime = this.cameraParams.getK4x4().times(this.secondaryCamera.getHomogeneousMatrix()).getMatrix(0, 2,
-				0, 3);
-		Matrix P = this.cameraParams.getK4x4().times(this.primaryCamera.getHomogeneousMatrix()).getMatrix(0, 2, 0, 3);
+		Pose pose = this.secondaryCamera;
+		Matrix K = this.cameraParams.getK();
 
-		// get pseudo-inverse of P
-		SingularValueDecomposition svd = P.transpose().svd();
-		Matrix sigmaPlus = svd.getS().inverse();
-		Matrix PtPlus = svd.getV().times(sigmaPlus).times(svd.getU().transpose());
-		Matrix Pplus = PtPlus.transpose();
+		Matrix R = pose.getRotationMatrix().getMatrix(0, 2, 0, 2);
+		Matrix tx = new Matrix(3, 3);
+		tx.set(0, 1, -pose.getTz());
+		tx.set(0, 2, pose.getTy());
+		tx.set(1, 0, pose.getTz());
+		tx.set(1, 2, -pose.getTx());
+		tx.set(2, 0, -pose.getTy());
+		tx.set(2, 1, pose.getTx());
 
-		// get epipole
-		Matrix camCenter = new Matrix(4, 1);
-		camCenter.set(0, 0, this.primaryCamera.getCx());
-		camCenter.set(1, 0, this.primaryCamera.getCy());
-		camCenter.set(2, 0, this.primaryCamera.getCz());
-		camCenter.set(3, 0, 1);
-		Matrix epipole = Pprime.times(camCenter); // homogenize?
-		Utils.pl("epipole: ");
-		epipole.print(15, 5);
+		Matrix essential = tx.times(R);
 
-		Matrix et = new Matrix(3, 3);
-		et.set(0, 1, -epipole.get(2, 0));
-		et.set(0, 2, epipole.get(1, 0));
-		et.set(1, 0, epipole.get(2, 0));
+		Matrix KInv = K.getMatrix(0, 2, 0, 2).inverse();
 
-		et.set(1, 2, -epipole.get(0, 0));
-		et.set(2, 0, -epipole.get(1, 0));
-		et.set(2, 1, epipole.get(0, 0));
+		Matrix fundamental = KInv.transpose().times(essential).times(KInv);
 
-		Matrix F = et.times(Pprime).times(Pplus);
-		F.print(15, 5);
-
-		return F;
+		return fundamental;
 	}
 
 	public Matrix estimateFundamentalMatrix(List<Correspondence2D2D> correspondences) {

@@ -4,6 +4,8 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
 
+import Jama.Matrix;
+
 public class SFMDataAnalysis {
 
 	public static void main(String[] args) {
@@ -27,25 +29,33 @@ public class SFMDataAnalysis {
 		}
 
 		Mat image = mock.getPrimaryImage();
-//		Matrix trueFun = mock.getTrueFundamentalMatrix();
-//		Matrix estFun = mock.estimateFundamentalMatrix(correspondences);
-//		Matrix truePose = mock.getPoseFromFundamentalMatrix(trueFun, correspondences);
-//		Matrix estPose = mock.getPoseFromFundamentalMatrix(estFun, correspondences);
-//
-//		Utils.pl("Calculated fundamental matrix: ");
-//		trueFun.print(50, 30);
-//
-//		Utils.pl("Estimated fundamental matrix: ");
-//		estFun.print(50, 30);
-//
-//		Utils.pl("Pose (calculated from true fundamental matrix): ");
-//		truePose.print(50, 30);
-//
-//		Utils.pl("Pose (calculated from estimated fundamental matrix): ");
-//		estPose.print(50, 30);
-//
-//		Utils.pl("Absolute true pose: ");
-//		mock.getSecondaryCamera().getHomogeneousMatrix().print(50, 30);
+		Matrix trueFun = mock.getTrueFundamentalMatrix();
+		Matrix estFun = mock.estimateFundamentalMatrix(correspondences);
+		Mat homography = mock.estimateHomography(correspondences);
+		Matrix truePose = mock.getPoseFromFundamentalMatrix(trueFun, correspondences);
+		Matrix estPose = mock.getPoseFromFundamentalMatrix(estFun, correspondences);
+		Matrix estPoseHomography = mock.getPoseFromHomography(homography, correspondences);
+
+		Utils.pl("Calculated fundamental matrix: ");
+		trueFun.print(50, 30);
+
+		Utils.pl("Estimated fundamental matrix: ");
+		estFun.print(50, 30);
+
+		Utils.pl("Estimated homography: ");
+		Utils.MatToMatrix(homography).print(50, 30);
+
+		Utils.pl("Pose (calculated from true fundamental matrix): ");
+		truePose.print(50, 30);
+
+		Utils.pl("Pose (calculated from estimated fundamental matrix): ");
+		estPose.print(50, 30);
+
+		Utils.pl("Pose (calculated from estimated homgraphy): ");
+		estPoseHomography.print(50, 30);
+
+		Utils.pl("Absolute true pose: ");
+		mock.getSecondaryCamera().getHomogeneousMatrix().print(50, 30);
 
 		while (true) {
 			HighGui.imshow("test", image);
