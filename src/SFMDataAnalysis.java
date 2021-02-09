@@ -51,7 +51,7 @@ public class SFMDataAnalysis {
 		Utils.pl("Pose (calculated from estimated fundamental matrix): ");
 		estPose.print(50, 30);
 
-		Utils.pl("Pose (calculated from estimated homgraphy): ");
+		Utils.pl("Pose (calculated from estimated homography): ");
 		estPoseHomography.print(50, 30);
 
 		Utils.pl("Absolute true pose: ");

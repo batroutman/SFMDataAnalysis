@@ -62,4 +62,14 @@ public class Utils {
 		return mat;
 	}
 
+	public double getChordalDistance(Matrix R1, Matrix R2) {
+		return R1.minus(R2).normF();
+	}
+
+	public double quaternionDistance(Matrix q1, Matrix q2) {
+
+		return Math.min(q1.plus(q2).normF(), q1.minus(q2).normF());
+
+	}
+
 }
