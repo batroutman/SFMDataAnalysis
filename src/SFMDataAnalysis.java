@@ -30,11 +30,13 @@ public class SFMDataAnalysis {
 
 		Mat image = mock.getPrimaryImage();
 		Matrix trueFun = mock.getTrueFundamentalMatrix();
-		Matrix estFun = mock.estimateFundamentalMatrix(correspondences);
-		Mat homography = mock.estimateHomography(correspondences);
-		Matrix truePose = mock.getPoseFromFundamentalMatrix(trueFun, correspondences);
-		Matrix estPose = mock.getPoseFromFundamentalMatrix(estFun, correspondences);
-		Matrix estPoseHomography = mock.getPoseFromHomography(homography, correspondences);
+
+		Matrix estFun = ComputerVision.estimateFundamentalMatrix(correspondences);
+		Mat homography = ComputerVision.estimateHomography(correspondences);
+		Matrix truePose = ComputerVision.getPoseFromFundamentalMatrix(trueFun, mock.getCameraParams(), correspondences);
+		Matrix estPose = ComputerVision.getPoseFromFundamentalMatrix(estFun, mock.getCameraParams(), correspondences);
+		Matrix estPoseHomography = ComputerVision.getPoseFromHomography(homography, mock.getPrimaryCamera(),
+				mock.getCameraParams(), correspondences);
 
 		Utils.pl("Calculated fundamental matrix: ");
 		trueFun.print(50, 30);
@@ -56,6 +58,22 @@ public class SFMDataAnalysis {
 
 		Utils.pl("Absolute true pose: ");
 		mock.getSecondaryCamera().getHomogeneousMatrix().print(50, 30);
+
+		Matrix evalMatrix = truePose;
+
+		List<Matrix> estimatedPoints = ComputerVision.triangulateCorrespondences(evalMatrix,
+				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+
+		double error = ComputerVision.getTotalReprojectionError(evalMatrix,
+				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
+				estimatedPoints);
+
+		Utils.pl("reprojectionError: " + error);
+		Utils.pl("avg reprojectionError: " + (error / correspondences.size()));
+
+		double chordal = Utils.chordalDistance(evalMatrix.getMatrix(0, 2, 0, 2),
+				mock.getSecondaryCamera().getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+		Utils.pl("Chordal distance: " + chordal);
 
 		while (true) {
 			HighGui.imshow("test", image);
