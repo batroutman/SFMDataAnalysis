@@ -25,7 +25,7 @@ public class VirtualEnvironment {
 
 		this.worldPoints.clear();
 
-		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 1, 2, 2, 2, 0));
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 1, 2, 2, 2, 2));
 //		this.worldPoints.addAll(this.getPointsInSphere(seed, 1000, 0, 0, 0, 0.5, 0.5));
 
 //		Random random = new Random(seed);
@@ -265,10 +265,6 @@ public class VirtualEnvironment {
 
 	public Pose getPrimaryCamera() {
 		return primaryCamera;
-	}
-
-	public void setPrimaryCamera(Pose primaryCamera) {
-		this.primaryCamera = primaryCamera;
 	}
 
 	public Pose getSecondaryCamera() {

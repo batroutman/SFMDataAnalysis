@@ -127,15 +127,6 @@ public class ComputerVision {
 		E4.set(1, 3, t4.get(1, 0));
 		E4.set(2, 3, t4.get(2, 0));
 
-		Utils.pl("E1:");
-		E1.print(15, 5);
-		Utils.pl("E2:");
-		E2.print(15, 5);
-		Utils.pl("E3:");
-		E3.print(15, 5);
-		Utils.pl("E4:");
-		E4.print(15, 5);
-
 		int[] scores = { 0, 0, 0, 0 };
 		double[] reprojErrors = { 0, 0, 0, 0 };
 

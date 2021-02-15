@@ -19,13 +19,15 @@ public class SFMDataAnalysis {
 
 		VirtualEnvironment mock = new VirtualEnvironment();
 		mock.getSecondaryCamera().setCz(-1);
+		mock.getSecondaryCamera().setCx(-0.5);
+		mock.getSecondaryCamera().rotateEuler(0, -0.1, 0);
 //		mock.getSecondaryCamera().rotateEuler(0, 0.1, 0);
 		mock.generatePoints(0, 1000, -10, 10, -10, 10, -10, 10);
 
 		List<Correspondence2D2D> correspondences = mock.getCorrespondences();
 		Utils.pl("number of correspondences: " + correspondences.size());
 		for (Correspondence2D2D corr : correspondences) {
-			Utils.pl(corr.getX0() + ", " + corr.getY0() + "  ====>    " + corr.getX1() + ", " + corr.getY1());
+//			Utils.pl(corr.getX0() + ", " + corr.getY0() + "  ====>    " + corr.getX1() + ", " + corr.getY1());
 		}
 
 		Mat image = mock.getPrimaryImage();
@@ -59,7 +61,7 @@ public class SFMDataAnalysis {
 		Utils.pl("Absolute true pose: ");
 		mock.getSecondaryCamera().getHomogeneousMatrix().print(50, 30);
 
-		Matrix evalMatrix = truePose;
+		Matrix evalMatrix = estPose;
 
 		List<Matrix> estimatedPoints = ComputerVision.triangulateCorrespondences(evalMatrix,
 				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
@@ -74,6 +76,14 @@ public class SFMDataAnalysis {
 		double chordal = Utils.chordalDistance(evalMatrix.getMatrix(0, 2, 0, 2),
 				mock.getSecondaryCamera().getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
 		Utils.pl("Chordal distance: " + chordal);
+
+		// sample test
+		Sample sample = new Sample();
+		long start = System.currentTimeMillis();
+		sample.evaluate(mock);
+		long end = System.currentTimeMillis();
+		Utils.pl("time to evaluate: " + (end - start) + "ms");
+		sample.printErrors();
 
 		while (true) {
 			HighGui.imshow("test", image);
