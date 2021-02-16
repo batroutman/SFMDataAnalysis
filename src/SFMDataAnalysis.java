@@ -17,6 +17,9 @@ public class SFMDataAnalysis {
 
 	public static void test() {
 
+		Double a = Double.parseDouble("3.5674567765E-3");
+		Utils.pl("a: " + a);
+
 		VirtualEnvironment mock = new VirtualEnvironment();
 		mock.getSecondaryCamera().setCz(-1);
 		mock.getSecondaryCamera().setCx(-0.5);
@@ -84,6 +87,15 @@ public class SFMDataAnalysis {
 		long end = System.currentTimeMillis();
 		Utils.pl("time to evaluate: " + (end - start) + "ms");
 		sample.printErrors();
+
+		String output = sample.stringify();
+		Utils.pl("output: ");
+		Utils.p(output);
+
+		Sample sample2 = Sample.parse(output);
+		Utils.pl("");
+		Utils.pl("sample2 output: ");
+		Utils.pl(sample2.stringify());
 
 		while (true) {
 			HighGui.imshow("test", image);
