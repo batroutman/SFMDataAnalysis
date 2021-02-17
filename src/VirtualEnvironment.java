@@ -25,23 +25,9 @@ public class VirtualEnvironment {
 
 		this.worldPoints.clear();
 
-		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 1, 2, 2, 2, 2));
+//		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0.1, 1, 0, 1, 1, 2, 2, 2, 2));
 //		this.worldPoints.addAll(this.getPointsInSphere(seed, 1000, 0, 0, 0, 0.5, 0.5));
-
-//		Random random = new Random(seed);
-//
-//		double Z_RANGE = maxZ - minZ;
-//		double Y_RANGE = maxY - minY;
-//		double X_RANGE = maxX - minX;
-//
-//		for (int i = 0; i < numPoints; i++) {
-//			Matrix point = new Matrix(4, 1);
-//			point.set(0, 0, random.nextDouble() * X_RANGE + minX);
-//			point.set(1, 0, random.nextDouble() * Y_RANGE + minY);
-//			point.set(2, 0, random.nextDouble() * Z_RANGE + minZ);
-//			point.set(3, 0, 1);
-//			this.worldPoints.add(point);
-//		}
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 1, 0, 0, 1, 2, 2, 2, 0));
 
 	}
 

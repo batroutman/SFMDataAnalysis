@@ -18,6 +18,11 @@ public class Sample {
 	public Matrix trueFundamentalMatrix = null;
 
 	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////// CORRESPONDENCE SUMMARY //////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	public CorrespondenceSummary correspondenceSummary = new CorrespondenceSummary();
+
+	///////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// ITEMS TO ESTIMATE /////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
@@ -99,6 +104,9 @@ public class Sample {
 		// get correspondences and true fundamental matrix
 		this.correspondences = mock.getCorrespondences();
 		this.trueFundamentalMatrix = mock.getTrueFundamentalMatrix();
+
+		// correspondence summary
+		this.correspondenceSummary.evaluate(this.correspondences);
 
 		// estimated fundamental matrix and homography
 		this.estimatedFundamentalMatrix = ComputerVision.estimateFundamentalMatrix(this.correspondences);
@@ -205,6 +213,9 @@ public class Sample {
 			output += c.getX0() + "," + c.getY0() + "," + c.getX1() + "," + c.getY1() + "|";
 		}
 		output += "\n";
+
+		// correspondence summary
+		output += this.correspondenceSummary.stringify();
 
 		// true fundamental matrix (row major order)
 		for (int i = 0; i < this.trueFundamentalMatrix.getRowDimension(); i++) {
@@ -348,6 +359,10 @@ public class Sample {
 			correspondences.add(c);
 		}
 		sample.correspondences = correspondences;
+		line++;
+
+		// correspondence summary
+		sample.correspondenceSummary = CorrespondenceSummary.parse(lines[line]);
 		line++;
 
 		// true fundamental matrix

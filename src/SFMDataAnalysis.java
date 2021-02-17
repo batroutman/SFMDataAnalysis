@@ -1,8 +1,11 @@
+import java.util.ArrayList;
 import java.util.List;
 
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
+import org.tensorflow.TensorFlow;
 
 import Jama.Matrix;
 
@@ -12,18 +15,55 @@ public class SFMDataAnalysis {
 		// link OpenCV binaries
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		System.out.println("Hello world!");
-		test();
+		test3();
+	}
+
+	public static double getAngle(Correspondence2D2D c) {
+
+		// get x and y values
+		double x = c.getX1() - c.getX0();
+		double y = c.getY1() - c.getY0();
+
+		// get base angle
+		double angle = Math.atan2(y, x);
+
+		return angle;
+
+	}
+
+	public static void test3() {
+
+		System.out.println("Hello TensorFlow " + TensorFlow.version());
+
+		MultiLayerNetwork model = new MultiLayerNetwork(config);
+
+	}
+
+	public static void test2() {
+		Correspondence2D2D c = new Correspondence2D2D();
+		c.setX0(0);
+		c.setX1(1);
+		c.setY0(0);
+		c.setY1(-0.4142);
+
+		double angle = getAngle(c);
+		Utils.pl("angle: " + angle);
+
+		double newAngle = angle >= 0 ? angle + 0.3926990816987 : angle - 0.3926990816987;
+		double result = newAngle / 0.7853981633974;
+
+		Utils.pl("result: " + result);
 	}
 
 	public static void test() {
 
-		Double a = Double.parseDouble("3.5674567765E-3");
+		Double a = Double.parseDouble("3.5674567765E-3\n");
 		Utils.pl("a: " + a);
 
 		VirtualEnvironment mock = new VirtualEnvironment();
 		mock.getSecondaryCamera().setCz(-1);
-		mock.getSecondaryCamera().setCx(-0.5);
-		mock.getSecondaryCamera().rotateEuler(0, -0.1, 0);
+//		mock.getSecondaryCamera().setCx(-0.5);
+//		mock.getSecondaryCamera().rotateEuler(0, -0.1, 0);
 //		mock.getSecondaryCamera().rotateEuler(0, 0.1, 0);
 		mock.generatePoints(0, 1000, -10, 10, -10, 10, -10, 10);
 
@@ -96,6 +136,12 @@ public class SFMDataAnalysis {
 		Utils.pl("");
 		Utils.pl("sample2 output: ");
 		Utils.pl(sample2.stringify());
+
+		List<Correspondence2D2D> corr = new ArrayList<Correspondence2D2D>();
+		corr.add(new Correspondence2D2D(0, 0, -1, -1));
+		CorrespondenceSummary summary = new CorrespondenceSummary(sample.correspondences);
+		Utils.pl("");
+		summary.printData();
 
 		while (true) {
 			HighGui.imshow("test", image);

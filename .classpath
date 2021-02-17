@@ -4,5 +4,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Jama-1.0.3"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/OpenCV-3.4.10"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Tensorflow"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/DeepLearning4j"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
