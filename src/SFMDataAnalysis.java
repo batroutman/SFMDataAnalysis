@@ -1,7 +1,15 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.knowm.xchart.QuickChart;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XYChart;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
@@ -15,7 +23,7 @@ public class SFMDataAnalysis {
 		// link OpenCV binaries
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		System.out.println("Hello world!");
-		test3();
+		test4();
 	}
 
 	public static double getAngle(Correspondence2D2D c) {
@@ -31,11 +39,80 @@ public class SFMDataAnalysis {
 
 	}
 
+	// create a number of mocks that gradually increase baseline and evaluate errors
+	// by charting them
+	public static void test4() {
+		VirtualEnvironment mock = new VirtualEnvironment();
+		mock.generatePlanarScene(0, 1000);
+
+		// initial secondary camera
+		double z = 0;
+		double x = 0;
+		double rotY = 0;
+		mock.getSecondaryCamera().setCz(z);
+		mock.getSecondaryCamera().setCx(x);
+		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
+
+		// ending params and motion params
+		double endZ = -0.5;
+		double endX = -1;
+		double endRotY = -0.5;
+		int numIterations = 1000;
+		double changeZ = (endZ - z) / numIterations;
+		double changeX = (endX - x) / numIterations;
+		double changeRotY = (endRotY - rotY) / numIterations;
+
+		// initialize samples list
+		List<Sample> samples = new ArrayList<Sample>();
+		double[] indexList = new double[numIterations];
+		double[] valueList = new double[numIterations];
+
+		for (int i = 0; i < numIterations; i++) {
+			indexList[i] = i;
+			Utils.pl("iteration: " + i);
+			z += changeZ;
+			x += changeX;
+			rotY = changeRotY;
+			mock.getSecondaryCamera().setCz(z);
+			mock.getSecondaryCamera().setCx(x);
+			mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
+			Sample sample = new Sample();
+			sample.evaluate(mock);
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+			Utils.pl("reprojectionError: " + sample.totalReprojErrorEstHomography / sample.correspondences.size());
+			valueList[i] = sample.totalReprojErrorEstHomography / sample.correspondences.size();
+			samples.add(sample);
+		}
+
+		Mat image = mock.getPrimaryImage();
+
+		// Create Chart
+		XYChart chart = QuickChart.getChart("Reprojection Error Over Movement", "iteration",
+				"average reprojection error", "y(x)", indexList, valueList);
+
+		// Show it
+		new SwingWrapper(chart).displayChart();
+
+	}
+
 	public static void test3() {
 
 		System.out.println("Hello TensorFlow " + TensorFlow.version());
 
+		MultiLayerConfiguration config = new NeuralNetConfiguration.Builder().list().layer(new OutputLayer.Builder()
+				.nIn(5).nOut(1).activation(Activation.SIGMOID).lossFunction(LossFunction.MSE).build()).build();
 		MultiLayerNetwork model = new MultiLayerNetwork(config);
+
+		double[] xData = new double[] { 0.0, 1.0, 2.0 };
+		double[] yData = new double[] { 2.0, 1.0, 0.0 };
+
+		// Create Chart
+		XYChart chart = QuickChart.getChart("Sample Chart", "X", "Y", "y(x)", xData, yData);
+
+		// Show it
+		new SwingWrapper(chart).displayChart();
+
+		Utils.pl("Done.");
 
 	}
 

@@ -270,7 +270,7 @@ public class ComputerVision {
 		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_7POINT);
 //		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, 2, 0.99, 500);
 		long end = System.currentTimeMillis();
-		Utils.pl("Fundamental matrix estimation time: " + (end - start) + "ms");
+//		Utils.pl("Fundamental matrix estimation time: " + (end - start) + "ms");
 
 		return Utils.MatToMatrix(fundamentalMatrix);
 	}
