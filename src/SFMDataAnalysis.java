@@ -39,6 +39,45 @@ public class SFMDataAnalysis {
 
 	}
 
+	public static void test5() {
+		VirtualEnvironment mock = new VirtualEnvironment();
+		mock.getSecondaryCamera().setCz(-0.5);
+		mock.getSecondaryCamera().setCx(-1);
+//		mock.getSecondaryCamera().setCx(-0.5);
+		mock.getSecondaryCamera().rotateEuler(0, -0.5, 0);
+		mock.generatePlanarScene(0, 1000);
+
+		Utils.pl("numCorrespondences: " + mock.getCorrespondences().size());
+
+		Mat image = mock.getPrimaryImage();
+
+		while (true) {
+			HighGui.imshow("test", image);
+			char c = (char) HighGui.waitKey(1);
+			if (c == 'A') {
+				image = mock.getPrimaryImage();
+			} else if (c == 'D') {
+				image = mock.getSecondaryImage();
+			} else if (c == 37) {
+				// left
+				mock.getSecondaryCamera().rotateEuler(0, 0.1, 0);
+				image = mock.getSecondaryImage();
+			} else if (c == 39) {
+				// right
+				mock.getSecondaryCamera().rotateEuler(0, -0.1, 0);
+				image = mock.getSecondaryImage();
+			} else if (c == 38) {
+				// up
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() + 0.1);
+				image = mock.getSecondaryImage();
+			} else if (c == 40) {
+				// down
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() - 0.1);
+				image = mock.getSecondaryImage();
+			}
+		}
+	}
+
 	// create a number of mocks that gradually increase baseline and evaluate errors
 	// by charting them
 	public static void test4() {
@@ -57,7 +96,7 @@ public class SFMDataAnalysis {
 		double endZ = -0.5;
 		double endX = -1;
 		double endRotY = -0.5;
-		int numIterations = 1000;
+		int numIterations = 100;
 		double changeZ = (endZ - z) / numIterations;
 		double changeX = (endX - x) / numIterations;
 		double changeRotY = (endRotY - rotY) / numIterations;
@@ -79,16 +118,18 @@ public class SFMDataAnalysis {
 			Sample sample = new Sample();
 			sample.evaluate(mock);
 			Utils.pl("numCorrespondences: " + sample.correspondences.size());
-			Utils.pl("reprojectionError: " + sample.totalReprojErrorEstHomography / sample.correspondences.size());
-			valueList[i] = sample.totalReprojErrorEstHomography / sample.correspondences.size();
+			Utils.pl("transChordalEstEssential: " + (sample.transChordalEstEssential));
+			sample.estimatedEssentialMatrix.print(15, 10);
+			sample.poseEstEssential.print(15, 10);
+			valueList[i] = sample.transChordalEstEssential;
 			samples.add(sample);
 		}
 
 		Mat image = mock.getPrimaryImage();
 
 		// Create Chart
-		XYChart chart = QuickChart.getChart("Reprojection Error Over Movement", "iteration",
-				"average reprojection error", "y(x)", indexList, valueList);
+		XYChart chart = QuickChart.getChart("Reprojection Error Over Movement", "iteration", "transChordalEstEssential",
+				"y(x)", indexList, valueList);
 
 		// Show it
 		new SwingWrapper(chart).displayChart();

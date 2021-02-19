@@ -28,6 +28,7 @@ public class Sample {
 
 	public Matrix estimatedFundamentalMatrix = null;
 	public Mat estimatedHomography = null;
+	public Matrix estimatedEssentialMatrix = null;
 
 	///////////////////////////////////////////////////////////////////////////////
 	/////////////////////// SECONDARY POSES TO ESTIMATE ///////////////////////////
@@ -41,6 +42,9 @@ public class Sample {
 
 	// pose derived from homography
 	public Matrix poseEstHomography = null;
+
+	// pose derived from estimated essential matrix
+	public Matrix poseEstEssential = null;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////// 3D POINT ESTIMATIONS ////////////////////////////////
@@ -57,6 +61,9 @@ public class Sample {
 
 	// points triangulated from poseEstHomography
 	public List<Matrix> estPointsEstHomography = new ArrayList<Matrix>();
+
+	// points triangulated from poseEstEssential
+	public List<Matrix> estPointsEstEssential = new ArrayList<Matrix>();
 
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////////////// REPROJECTION ERRORS ////////////////////////////////
@@ -78,6 +85,10 @@ public class Sample {
 	// estPointsEstHomography
 	public double totalReprojErrorEstHomography = 0;
 
+	// sum of reprojection errors using primaryCamera, poseEstEssential, and
+	// estPointsEstEssential
+	public double totalReprojErrorEstEssential = 0;
+
 	///////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// CHORDAL DISTANCES /////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
@@ -86,11 +97,13 @@ public class Sample {
 	public double rotChordalTrueFun = 0;
 	public double rotChordalEstFun = 0;
 	public double rotChordalEstHomography = 0;
+	public double rotChordalEstEssential = 0;
 
 	// -- normalized translational chordal distances ----
 	public double transChordalTrueFun = 0;
 	public double transChordalEstFun = 0;
 	public double transChordalEstHomography = 0;
+	public double transChordalEstEssential = 0;
 
 	public Sample() {
 	}
@@ -111,6 +124,8 @@ public class Sample {
 		// estimated fundamental matrix and homography
 		this.estimatedFundamentalMatrix = ComputerVision.estimateFundamentalMatrix(this.correspondences);
 		this.estimatedHomography = ComputerVision.estimateHomography(this.correspondences);
+		this.estimatedEssentialMatrix = ComputerVision.estimateEssentialMatrix(this.correspondences,
+				mock.getCameraParams());
 
 		// estimated poses
 		this.poseTrueFun = ComputerVision.getPoseFromFundamentalMatrix(this.trueFundamentalMatrix,
@@ -119,6 +134,8 @@ public class Sample {
 				mock.getCameraParams(), this.correspondences);
 		this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography, mock.getPrimaryCamera(),
 				mock.getCameraParams(), correspondences);
+		this.poseEstEssential = ComputerVision.getPoseFromEssentialMatrix(this.estimatedEssentialMatrix,
+				mock.getCameraParams(), this.correspondences);
 
 		// 3D point estimations
 		this.estPointsTrue = ComputerVision.triangulateCorrespondences(this.secondaryCamera.getHomogeneousMatrix(),
@@ -128,6 +145,8 @@ public class Sample {
 		this.estPointsEstFun = ComputerVision.triangulateCorrespondences(poseEstFun,
 				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
 		this.estPointsEstHomography = ComputerVision.triangulateCorrespondences(poseEstHomography,
+				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+		this.estPointsEstEssential = ComputerVision.triangulateCorrespondences(poseEstEssential,
 				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
 
 		// reprojection errors
@@ -143,6 +162,9 @@ public class Sample {
 		this.totalReprojErrorEstHomography = ComputerVision.getTotalReprojectionError(this.poseEstHomography,
 				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
 				this.estPointsEstHomography);
+		this.totalReprojErrorEstEssential = ComputerVision.getTotalReprojectionError(this.poseEstEssential,
+				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
+				this.estPointsEstEssential);
 
 		// chordal distances
 		this.rotChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 0, 2),
@@ -150,6 +172,8 @@ public class Sample {
 		this.rotChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 0, 2),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
 		this.rotChordalEstHomography = Utils.chordalDistance(poseEstHomography.getMatrix(0, 2, 0, 2),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+		this.rotChordalEstEssential = Utils.chordalDistance(poseEstEssential.getMatrix(0, 2, 0, 2),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
 
 		this.transChordalTrueFun = Utils.chordalDistance(
@@ -164,6 +188,10 @@ public class Sample {
 				poseEstHomography.getMatrix(0, 2, 3, 3).times(1 / poseEstHomography.getMatrix(0, 2, 3, 3).normF()),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
 						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
+		this.transChordalEstEssential = Utils.chordalDistance(
+				poseEstEssential.getMatrix(0, 2, 3, 3).times(1 / poseEstEssential.getMatrix(0, 2, 3, 3).normF()),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
+						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
 
 	}
 
@@ -172,6 +200,7 @@ public class Sample {
 		Utils.pl("Total reprojection error (true fundamental matrix): " + this.totalReprojErrorTrueFun);
 		Utils.pl("Total reprojection error (estimated fundamental matrix): " + this.totalReprojErrorEstFun);
 		Utils.pl("Total reprojection error (estimated homography): " + this.totalReprojErrorEstHomography);
+		Utils.pl("Total reprojection error (estimated essential matrix): " + this.totalReprojErrorEstEssential);
 
 		Utils.pl(
 				"Average reprojection error (true pose): " + (this.totalReprojErrorTrue / this.correspondences.size()));
@@ -181,15 +210,20 @@ public class Sample {
 				+ (this.totalReprojErrorEstFun / this.correspondences.size()));
 		Utils.pl("Average reprojection error (estimated homography): "
 				+ (this.totalReprojErrorEstHomography / this.correspondences.size()));
+		Utils.pl("Average reprojection error (estimated essential matrix): "
+				+ (this.totalReprojErrorEstEssential / this.correspondences.size()));
 
 		Utils.pl("Rotational chordal distance (true fundamental matrix): " + this.rotChordalTrueFun);
 		Utils.pl("Rotational chordal distance (estimated fundamental matrix): " + this.rotChordalEstFun);
 		Utils.pl("Rotational chordal distance (estimated homography): " + this.rotChordalEstHomography);
+		Utils.pl("Rotational chordal distance (estimated essential matrix): " + this.rotChordalEstEssential);
 
 		Utils.pl("Normalized translational chordal distance (true fundamental matrix): " + this.transChordalTrueFun);
 		Utils.pl(
 				"Normalized translational chordal distance (estimated fundamental matrix): " + this.transChordalEstFun);
 		Utils.pl("Normalized translational chordal distance (estimated homography): " + this.transChordalEstHomography);
+		Utils.pl("Normalized translational chordal distance (estimated essential matrix): "
+				+ this.transChordalEstEssential);
 	}
 
 	public String stringify() {
@@ -241,6 +275,14 @@ public class Sample {
 		}
 		output += "\n";
 
+		// estimated essential matrix (row major order)
+		for (int i = 0; i < this.estimatedEssentialMatrix.getRowDimension(); i++) {
+			for (int j = 0; j < this.estimatedEssentialMatrix.getColumnDimension(); j++) {
+				output += this.estimatedEssentialMatrix.get(i, j) + ",";
+			}
+		}
+		output += "\n";
+
 		// poseTrueFun matrix (row major order)
 		for (int i = 0; i < this.poseTrueFun.getRowDimension(); i++) {
 			for (int j = 0; j < this.poseTrueFun.getColumnDimension(); j++) {
@@ -261,6 +303,14 @@ public class Sample {
 		for (int i = 0; i < this.poseEstHomography.getRowDimension(); i++) {
 			for (int j = 0; j < this.poseEstHomography.getColumnDimension(); j++) {
 				output += this.poseEstHomography.get(i, j) + ",";
+			}
+		}
+		output += "\n";
+
+		// poseEstEssential matrix (row major order)
+		for (int i = 0; i < this.poseEstEssential.getRowDimension(); i++) {
+			for (int j = 0; j < this.poseEstEssential.getColumnDimension(); j++) {
+				output += this.poseEstEssential.get(i, j) + ",";
 			}
 		}
 		output += "\n";
@@ -293,19 +343,27 @@ public class Sample {
 		}
 		output += "\n";
 
+		// estPointsEstEssential (x,y,z|x,y,z|...)
+		for (int i = 0; i < this.estPointsEstEssential.size(); i++) {
+			Matrix p = this.estPointsEstEssential.get(i);
+			output += p.get(0, 0) + "," + p.get(1, 0) + "," + p.get(2, 0) + "|";
+		}
+		output += "\n";
+
 		// total reprojection errors
 		// (totalReprojErrorTrue,totalReprojErrorTrueFun,totalReprojErrorEstFun,totalReprojErrorEstHomography)
 		output += this.totalReprojErrorTrue + "," + this.totalReprojErrorTrueFun + "," + this.totalReprojErrorEstFun
-				+ "," + this.totalReprojErrorEstHomography + "\n";
+				+ "," + this.totalReprojErrorEstHomography + "," + this.totalReprojErrorEstEssential + "\n";
 
 		// rotational chordal distances
 		// (rotChordalTrueFun,rotChordalEstFun,rotChordalEstHomography)
-		output += this.rotChordalTrueFun + "," + this.rotChordalEstFun + "," + this.rotChordalEstHomography + "\n";
+		output += this.rotChordalTrueFun + "," + this.rotChordalEstFun + "," + this.rotChordalEstHomography + ","
+				+ this.rotChordalEstEssential + "\n";
 
 		// translational chordal distances
 		// (transChordalTrueFun,transChordalEstFun,transChordalEstHomography)
-		output += this.transChordalTrueFun + "," + this.transChordalEstFun + "," + this.transChordalEstHomography
-				+ "\n";
+		output += this.transChordalTrueFun + "," + this.transChordalEstFun + "," + this.transChordalEstHomography + ","
+				+ this.transChordalEstEssential + "\n";
 
 		return output;
 	}
@@ -398,6 +456,17 @@ public class Sample {
 		sample.estimatedHomography = estHom;
 		line++;
 
+		// estimated essential matrix
+		String[] estEssentialMatLine = lines[line].split(",");
+		Matrix estEssentialMat = new Matrix(3, 3);
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				estEssentialMat.set(i, j, Double.parseDouble(estEssentialMatLine[i * 3 + j]));
+			}
+		}
+		sample.estimatedEssentialMatrix = estEssentialMat;
+		line++;
+
 		// poseTrueFun
 		String[] poseTrueFunLine = lines[line].split(",");
 		Matrix poseTrueFun = new Matrix(3, 4);
@@ -429,6 +498,17 @@ public class Sample {
 			}
 		}
 		sample.poseEstHomography = poseEstHomography;
+		line++;
+
+		// poseEstEssential
+		String[] poseEstEssentialLine = lines[line].split(",");
+		Matrix poseEstEssential = new Matrix(3, 4);
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 4; j++) {
+				poseEstEssential.set(i, j, Double.parseDouble(poseEstEssentialLine[i * 3 + j]));
+			}
+		}
+		sample.poseEstEssential = poseEstEssential;
 		line++;
 
 		// estPointsTrue
@@ -491,12 +571,28 @@ public class Sample {
 		sample.estPointsEstHomography = estPointsEstHomography;
 		line++;
 
+		// estPointsEstEssential
+		String[] estPointsEstEssentialLine = lines[line].split("\\|");
+		List<Matrix> estPointsEstEssential = new ArrayList<Matrix>(estPointsEstEssentialLine.length);
+		for (int i = 0; i < estPointsEstEssentialLine.length; i++) {
+			String[] coords = estPointsEstEssentialLine[i].split(",");
+			Matrix p = new Matrix(4, 1);
+			p.set(0, 0, Double.parseDouble(coords[0]));
+			p.set(1, 0, Double.parseDouble(coords[1]));
+			p.set(2, 0, Double.parseDouble(coords[2]));
+			p.set(3, 0, 1);
+			estPointsEstEssential.add(p);
+		}
+		sample.estPointsEstEssential = estPointsEstEssential;
+		line++;
+
 		// reprojection errors
 		String[] reprojErrorLine = lines[line].split(",");
 		sample.totalReprojErrorTrue = Double.parseDouble(reprojErrorLine[0]);
 		sample.totalReprojErrorTrueFun = Double.parseDouble(reprojErrorLine[1]);
 		sample.totalReprojErrorEstFun = Double.parseDouble(reprojErrorLine[2]);
 		sample.totalReprojErrorEstHomography = Double.parseDouble(reprojErrorLine[3]);
+		sample.totalReprojErrorEstEssential = Double.parseDouble(reprojErrorLine[4]);
 		line++;
 
 		// rotational chordal distances
@@ -504,6 +600,7 @@ public class Sample {
 		sample.rotChordalTrueFun = Double.parseDouble(rotChordalLine[0]);
 		sample.rotChordalEstFun = Double.parseDouble(rotChordalLine[1]);
 		sample.rotChordalEstHomography = Double.parseDouble(rotChordalLine[2]);
+		sample.rotChordalEstEssential = Double.parseDouble(rotChordalLine[3]);
 		line++;
 
 		// translational chordal distances
@@ -511,6 +608,7 @@ public class Sample {
 		sample.transChordalTrueFun = Double.parseDouble(transChordalLine[0]);
 		sample.transChordalEstFun = Double.parseDouble(transChordalLine[1]);
 		sample.transChordalEstHomography = Double.parseDouble(transChordalLine[2]);
+		sample.transChordalEstEssential = Double.parseDouble(transChordalLine[3]);
 
 		return sample;
 	}

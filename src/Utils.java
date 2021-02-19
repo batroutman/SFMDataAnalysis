@@ -62,6 +62,17 @@ public class Utils {
 		return mat;
 	}
 
+	public static void printMatrix(Mat mat) {
+		double[] buffer = new double[mat.rows() * mat.cols()];
+		mat.get(0, 0, buffer);
+		for (int i = 0; i < mat.rows(); i++) {
+			for (int j = 0; j < mat.cols(); j++) {
+				p(buffer[mat.cols() * i + j] + (j == mat.cols() - 1 ? "" : " ,"));
+			}
+			pl("");
+		}
+	}
+
 	public static double chordalDistance(Matrix R1, Matrix R2) {
 		return R1.minus(R2).normF();
 	}

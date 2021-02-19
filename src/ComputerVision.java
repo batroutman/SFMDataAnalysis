@@ -3,7 +3,6 @@ import java.util.List;
 import java.util.Random;
 
 import org.opencv.calib3d.Calib3d;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -57,8 +56,20 @@ public class ComputerVision {
 	public static Matrix selectHomographySolution(Pose primaryCamera, CameraParams cameraParams, List<Mat> rotations,
 			List<Mat> translations, List<Correspondence2D2D> correspondences) {
 
-		Matrix pose = primaryCamera.getHomogeneousMatrix();
+//		Utils.pl("rotations: ");
+//		for (int i = 0; i < rotations.size(); i++) {
+//			Utils.printMatrix(rotations.get(i));
+//			Utils.pl("");
+//		}
+//
+//		Utils.pl("translations: ");
+//		for (int i = 0; i < translations.size(); i++) {
+//			Utils.printMatrix(translations.get(i));
+//			Utils.pl("");
+//		}
 
+		Matrix pose = primaryCamera.getHomogeneousMatrix();
+		Utils.pl("translations size: " + translations.size());
 		Matrix R1 = Utils.MatToMatrix(rotations.get(0));
 		Matrix R2 = Utils.MatToMatrix(rotations.get(1));
 		Matrix R3 = Utils.MatToMatrix(rotations.get(2));
@@ -186,6 +197,8 @@ public class ComputerVision {
 			}
 		}
 
+//		Utils.pl("scores:   " + scores[0] + ", " + scores[1] + ", " + scores[2] + ", " + scores[3]);
+
 		// narrow down options based on chirality (should have 2 hypotheses
 		// remaining)
 		ArrayList<Integer> bestHypothesesInd = new ArrayList<Integer>();
@@ -275,18 +288,47 @@ public class ComputerVision {
 		return Utils.MatToMatrix(fundamentalMatrix);
 	}
 
+	public static Matrix estimateEssentialMatrix(List<Correspondence2D2D> correspondences, CameraParams cameraParams) {
+
+		// create point matrices
+		List<Point> points0 = new ArrayList<Point>();
+		List<Point> points1 = new ArrayList<Point>();
+		for (int i = 0; i < correspondences.size(); i++) {
+			Point point0 = new Point(correspondences.get(i).getX0(), correspondences.get(i).getY0());
+			Point point1 = new Point(correspondences.get(i).getX1(), correspondences.get(i).getY1());
+			points0.add(point0);
+			points1.add(point1);
+		}
+
+		MatOfPoint2f points0Mat = new MatOfPoint2f();
+		MatOfPoint2f points1Mat = new MatOfPoint2f();
+		points0Mat.fromList(points0);
+		points1Mat.fromList(points1);
+
+		long start = System.currentTimeMillis();
+		Mat essentialMat = Calib3d.findEssentialMat(points0Mat, points1Mat, cameraParams.getKMat());
+//		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, 2, 0.99, 500);
+		long end = System.currentTimeMillis();
+		Utils.pl("Essential matrix estimation time: " + (end - start) + "ms");
+
+		return Utils.MatToMatrix(essentialMat);
+	}
+
 	public static Matrix getPoseFromFundamentalMatrix(Matrix fundamentalMatrix, CameraParams cameraParams,
 			List<Correspondence2D2D> correspondences) {
 
-		Mat funMat = Utils.MatrixToMat(fundamentalMatrix);
+		// convert to essential matrix
+		Matrix essentialMatrix = cameraParams.getK().transpose().times(fundamentalMatrix).times(cameraParams.getK());
+
+		return getPoseFromEssentialMatrix(essentialMatrix, cameraParams, correspondences);
+
+	}
+
+	public static Matrix getPoseFromEssentialMatrix(Matrix essentialMatrix, CameraParams cameraParams,
+			List<Correspondence2D2D> correspondences) {
 
 		// convert to essential matrix
-		Mat K = cameraParams.getKMat();
-		Mat Kt = new Mat();
-		Core.transpose(K, Kt);
-		Mat E = new Mat();
-		Core.gemm(Kt, funMat, 1, new Mat(), 0, E, 0);
-		Core.gemm(E, K, 1, new Mat(), 0, E, 0);
+		Mat E = Utils.MatrixToMat(essentialMatrix);
 
 		// decompose essential matrix
 		Mat R1Mat = new Mat();
@@ -358,6 +400,8 @@ public class ComputerVision {
 			}
 
 		}
+
+		Utils.pl("scores:   " + scores[0] + ", " + scores[1] + ", " + scores[2] + ", " + scores[3]);
 
 		// find highest scoring pose
 		int highestInd = 0;
