@@ -69,7 +69,6 @@ public class ComputerVision {
 //		}
 
 		Matrix pose = primaryCamera.getHomogeneousMatrix();
-		Utils.pl("translations size: " + translations.size());
 		Matrix R1 = Utils.MatToMatrix(rotations.get(0));
 		Matrix R2 = Utils.MatToMatrix(rotations.get(1));
 		Matrix R3 = Utils.MatToMatrix(rotations.get(2));
@@ -309,7 +308,6 @@ public class ComputerVision {
 		Mat essentialMat = Calib3d.findEssentialMat(points0Mat, points1Mat, cameraParams.getKMat());
 //		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, 2, 0.99, 500);
 		long end = System.currentTimeMillis();
-		Utils.pl("Essential matrix estimation time: " + (end - start) + "ms");
 
 		return Utils.MatToMatrix(essentialMat);
 	}
@@ -401,7 +399,7 @@ public class ComputerVision {
 
 		}
 
-		Utils.pl("scores:   " + scores[0] + ", " + scores[1] + ", " + scores[2] + ", " + scores[3]);
+//		Utils.pl("scores:   " + scores[0] + ", " + scores[1] + ", " + scores[2] + ", " + scores[3]);
 
 		// find highest scoring pose
 		int highestInd = 0;

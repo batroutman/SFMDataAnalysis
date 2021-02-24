@@ -36,6 +36,41 @@ public class CorrespondenceSummary {
 		this.evaluate(correspondences);
 	}
 
+	// return a double array of the input data (normalized bins)
+	public double[] getArray() {
+		double[] features = new double[23];
+		features[0] = this.numCorrespondences / 300.0;
+		features[1] = this.meanDisparity / 800.0;
+		features[2] = this.stdDevDisparity / 800.0;
+		features[3] = this.minX0 / 640.0;
+		features[4] = this.maxX0 / 640.0;
+		features[5] = this.minY0 / 480.0;
+		features[6] = this.maxY0 / 480.0;
+		features[7] = this.minX1 / 640.0;
+		features[8] = this.maxX1 / 640.0;
+		features[9] = this.minY1 / 480.0;
+		features[10] = this.maxY1 / 480.0;
+		features[11] = this.rangeX0 / 640.0;
+		features[12] = this.rangeY0 / 480.0;
+		features[13] = this.rangeX1 / 640.0;
+		features[14] = this.rangeY1 / 480.0;
+
+		// get magnitude of rotation bins
+		double mag = Math.sqrt(Math.pow(binN, 2) + Math.pow(binNE, 2) + Math.pow(binE, 2) + Math.pow(binSE, 2)
+				+ Math.pow(binS, 2) + Math.pow(binSW, 2) + Math.pow(binW, 2) + Math.pow(binNW, 2));
+
+		features[15] = this.binN / mag;
+		features[16] = this.binNE / mag;
+		features[17] = this.binE / mag;
+		features[18] = this.binSE / mag;
+		features[19] = this.binS / mag;
+		features[20] = this.binSW / mag;
+		features[21] = this.binW / mag;
+		features[22] = this.binNW / mag;
+
+		return features;
+	}
+
 	public void evaluate(List<Correspondence2D2D> correspondences) {
 
 		this.numCorrespondences = correspondences.size();

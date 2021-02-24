@@ -5,10 +5,19 @@ import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler.LegendPosition;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.learning.config.Sgd;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -41,10 +50,15 @@ public class SFMDataAnalysis {
 
 	public static void test5() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.getSecondaryCamera().setCz(-0.5);
-		mock.getSecondaryCamera().setCx(-1);
-//		mock.getSecondaryCamera().setCx(-0.5);
-		mock.getSecondaryCamera().rotateEuler(0, -0.5, 0);
+//		mock.generateSphericalScene(0, 1000);
+		mock.getSecondaryCamera().setCz(1);
+		mock.getSecondaryCamera().setCx(-0.25);
+		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
+
+//		mock.getSecondaryCamera().setCz(-0.125);
+//		mock.getSecondaryCamera().setCx(-0.25);
+//		mock.getSecondaryCamera().rotateEuler(0, -0.125, 0);
+
 		mock.generatePlanarScene(0, 1000);
 
 		Utils.pl("numCorrespondences: " + mock.getCorrespondences().size());
@@ -68,11 +82,11 @@ public class SFMDataAnalysis {
 				image = mock.getSecondaryImage();
 			} else if (c == 38) {
 				// up
-				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() + 0.1);
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() + 0.01);
 				image = mock.getSecondaryImage();
 			} else if (c == 40) {
 				// down
-				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() - 0.1);
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() - 0.01);
 				image = mock.getSecondaryImage();
 			}
 		}
@@ -82,7 +96,7 @@ public class SFMDataAnalysis {
 	// by charting them
 	public static void test4() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.generatePlanarScene(0, 1000);
+		mock.generateSphericalScene(0, 1000);
 
 		// initial secondary camera
 		double z = 0;
@@ -93,9 +107,9 @@ public class SFMDataAnalysis {
 		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
 
 		// ending params and motion params
-		double endZ = -0.5;
-		double endX = -1;
-		double endRotY = -0.5;
+		double endZ = -0.125;
+		double endX = -0.25;
+		double endRotY = -0.125;
 		int numIterations = 100;
 		double changeZ = (endZ - z) / numIterations;
 		double changeX = (endX - x) / numIterations;
@@ -104,10 +118,16 @@ public class SFMDataAnalysis {
 		// initialize samples list
 		List<Sample> samples = new ArrayList<Sample>();
 		double[] indexList = new double[numIterations];
-		double[] valueList = new double[numIterations];
+		double[] valueListFun = new double[numIterations];
+		double[] valueListHom = new double[numIterations];
+		double[] valueListEss = new double[numIterations];
+
+		// deep learning training data
+		INDArray input = Nd4j.zeros(numIterations, 23);
+		INDArray labels = Nd4j.zeros(numIterations, 1);
 
 		for (int i = 0; i < numIterations; i++) {
-			indexList[i] = i;
+
 			Utils.pl("iteration: " + i);
 			z += changeZ;
 			x += changeX;
@@ -115,25 +135,65 @@ public class SFMDataAnalysis {
 			mock.getSecondaryCamera().setCz(z);
 			mock.getSecondaryCamera().setCx(x);
 			mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
+			indexList[i] = (double) Math
+					.round(mock.getSecondaryCamera().getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() * 1000)
+					/ 1000;
 			Sample sample = new Sample();
 			sample.evaluate(mock);
-			Utils.pl("numCorrespondences: " + sample.correspondences.size());
-			Utils.pl("transChordalEstEssential: " + (sample.transChordalEstEssential));
-			sample.estimatedEssentialMatrix.print(15, 10);
-			sample.poseEstEssential.print(15, 10);
-			valueList[i] = sample.transChordalEstEssential;
+
+			valueListFun[i] = sample.transChordalEstFun;
+			valueListHom[i] = sample.transChordalEstHomography;
+			valueListEss[i] = sample.transChordalEstEssential;
+
 			samples.add(sample);
+
+			// deep learning stuff
+			INDArray row = Nd4j.create(sample.correspondenceSummary.getArray());
+			input.putRow(i, row);
+			labels.putScalar(new int[] { i, 0 }, indexList[i] < 0.05 ? 0 : 1);
 		}
 
 		Mat image = mock.getPrimaryImage();
 
 		// Create Chart
-		XYChart chart = QuickChart.getChart("Reprojection Error Over Movement", "iteration", "transChordalEstEssential",
-				"y(x)", indexList, valueList);
+		final XYChart chart = new XYChartBuilder().width(600).height(400)
+				.title("Error Metric Over Baseline for Planar Scene").xAxisTitle("Baseline Length")
+				.yAxisTitle("Normalized Translational Chordal Distance").build();
+
+		// Customize Chart
+		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
+
+		// Series
+		chart.addSeries("Fundamental Matrix Estimate (7PA)", indexList, valueListFun);
+		chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
+		chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
 
 		// Show it
-		new SwingWrapper(chart).displayChart();
+//		new SwingWrapper(chart).displayChart();
 
+		// train a model on this data
+		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().updater(new Sgd(0.1)).seed(0)
+				.weightInit(WeightInit.XAVIER).list().layer(new OutputLayer.Builder(LossFunction.XENT)
+						.activation(Activation.SIGMOID).nIn(23).nOut(1).build())
+				.build();
+		MultiLayerNetwork model = new MultiLayerNetwork(conf);
+		model.init();
+		model.setListeners(new ScoreIterationListener(100));
+
+		// train model
+		DataSet data = new DataSet(input, labels);
+		for (int i = 0; i < 200000; i++) {
+			model.fit(data);
+		}
+
+		// create output for every training sample
+		INDArray output = model.output(data.getFeatures());
+		System.out.println(output);
+
+		// let Evaluation prints stats how often the right output had the highest value
+		Evaluation eval = new Evaluation();
+		eval.eval(data.getLabels(), output);
+		System.out.println(eval.stats());
 	}
 
 	public static void test3() {
