@@ -73,6 +73,7 @@ public class CorrespondenceSummary {
 
 	public void evaluate(List<Correspondence2D2D> correspondences) {
 
+		long start = System.currentTimeMillis();
 		this.numCorrespondences = correspondences.size();
 
 		List<Double> disparities = new ArrayList<Double>();
@@ -116,6 +117,9 @@ public class CorrespondenceSummary {
 			sumSqDev += Math.pow(disparity - this.meanDisparity, 2);
 		}
 		this.stdDevDisparity = Math.sqrt(sumSqDev / this.numCorrespondences);
+
+		long end = System.currentTimeMillis();
+		Utils.pl("correspondence summary time: " + (end - start) + "ms");
 
 	}
 

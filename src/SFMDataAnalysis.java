@@ -107,8 +107,10 @@ public class SFMDataAnalysis {
 		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
 
 		// ending params and motion params
-		double endZ = -0.125;
-		double endX = -0.25;
+//		double endZ = -0.125;
+//		double endX = -0.25;
+		double endZ = 0;
+		double endX = 0;
 		double endRotY = -0.125;
 		int numIterations = 100;
 		double changeZ = (endZ - z) / numIterations;
@@ -138,12 +140,16 @@ public class SFMDataAnalysis {
 			indexList[i] = (double) Math
 					.round(mock.getSecondaryCamera().getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() * 1000)
 					/ 1000;
+			indexList[i] = i;
 			Sample sample = new Sample();
 			sample.evaluate(mock);
 
 			valueListFun[i] = sample.transChordalEstFun;
 			valueListHom[i] = sample.transChordalEstHomography;
 			valueListEss[i] = sample.transChordalEstEssential;
+
+			sample.poseEstHomography.print(10, 5);
+			sample.secondaryCamera.getHomogeneousMatrix().print(10, 5);
 
 			samples.add(sample);
 
@@ -169,7 +175,7 @@ public class SFMDataAnalysis {
 		chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
 
 		// Show it
-//		new SwingWrapper(chart).displayChart();
+		new SwingWrapper(chart).displayChart();
 
 		// train a model on this data
 		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().updater(new Sgd(0.1)).seed(0)
@@ -183,7 +189,7 @@ public class SFMDataAnalysis {
 		// train model
 		DataSet data = new DataSet(input, labels);
 		for (int i = 0; i < 200000; i++) {
-			model.fit(data);
+//			model.fit(data);
 		}
 
 		// create output for every training sample

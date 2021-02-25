@@ -68,6 +68,24 @@ public class ComputerVision {
 //			Utils.pl("");
 //		}
 
+		if (rotations.size() == 1) {
+			Matrix R = Utils.MatToMatrix(rotations.get(0));
+			Matrix t = Utils.MatToMatrix(translations.get(0));
+			Matrix E = Matrix.identity(4, 4);
+			E.set(0, 0, R.get(0, 0));
+			E.set(0, 1, R.get(0, 1));
+			E.set(0, 2, R.get(0, 2));
+			E.set(1, 0, R.get(1, 0));
+			E.set(1, 1, R.get(1, 1));
+			E.set(1, 2, R.get(1, 2));
+			E.set(2, 0, R.get(2, 0));
+			E.set(2, 1, R.get(2, 1));
+			E.set(2, 2, R.get(2, 2));
+			E.set(0, 3, t.get(0, 0));
+			E.set(1, 3, t.get(1, 0));
+			E.set(2, 3, t.get(2, 0));
+			return E;
+		}
 		Matrix pose = primaryCamera.getHomogeneousMatrix();
 		Matrix R1 = Utils.MatToMatrix(rotations.get(0));
 		Matrix R2 = Utils.MatToMatrix(rotations.get(1));

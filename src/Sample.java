@@ -176,22 +176,36 @@ public class Sample {
 		this.rotChordalEstEssential = Utils.chordalDistance(poseEstEssential.getMatrix(0, 2, 0, 2),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
 
-		this.transChordalTrueFun = Utils.chordalDistance(
-				poseTrueFun.getMatrix(0, 2, 3, 3).times(1 / poseTrueFun.getMatrix(0, 2, 3, 3).normF()),
+		this.transChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 3, 3).times(
+				1 / poseTrueFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseTrueFun.getMatrix(0, 2, 3, 3).normF() : 1),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
-		this.transChordalEstFun = Utils.chordalDistance(
-				poseEstFun.getMatrix(0, 2, 3, 3).times(1 / poseEstFun.getMatrix(0, 2, 3, 3).normF()),
+						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1));
+		this.transChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 3, 3)
+				.times(1 / poseEstFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseEstFun.getMatrix(0, 2, 3, 3).normF() : 1),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
+						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1));
 		this.transChordalEstHomography = Utils.chordalDistance(
-				poseEstHomography.getMatrix(0, 2, 3, 3).times(1 / poseEstHomography.getMatrix(0, 2, 3, 3).normF()),
+				poseEstHomography.getMatrix(0, 2, 3, 3)
+						.times(1 / poseEstHomography.getMatrix(0, 2, 3, 3).normF() > 0
+								? poseEstHomography.getMatrix(0, 2, 3, 3).normF()
+								: 1),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
+						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1));
 		this.transChordalEstEssential = Utils.chordalDistance(
-				poseEstEssential.getMatrix(0, 2, 3, 3).times(1 / poseEstEssential.getMatrix(0, 2, 3, 3).normF()),
+				poseEstEssential.getMatrix(0, 2, 3, 3)
+						.times(1 / poseEstEssential.getMatrix(0, 2, 3, 3).normF() > 0
+								? poseEstEssential.getMatrix(0, 2, 3, 3).normF()
+								: 1),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()));
+						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1));
 
 	}
 
