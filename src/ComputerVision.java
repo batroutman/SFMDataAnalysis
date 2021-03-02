@@ -488,4 +488,32 @@ public class ComputerVision {
 
 	}
 
+	public static double totalReconstructionError(List<Matrix> triangulated, List<Matrix> truePoints) {
+
+		// get scale factor for triangulated points
+		double trueScale = truePoints.get(0).getMatrix(0, 2, 0, 0).minus(truePoints.get(1).getMatrix(0, 2, 0, 0))
+				.normF();
+		double triangulatedScale = triangulated.get(0).getMatrix(0, 2, 0, 0)
+				.minus(triangulated.get(1).getMatrix(0, 2, 0, 0)).normF();
+//		double trueScale = truePoints.get(0).normF();
+//		double triangulatedScale = triangulated.get(0).normF();
+		double scaleFactor = trueScale / triangulatedScale;
+//		scaleFactor = 1;
+
+		// collect reconstruction errors
+		List<Double> reconstructionErrors = new ArrayList<Double>();
+		double totalError = 0;
+
+		for (int i = 0; i < triangulated.size(); i++) {
+			Matrix scaledPoint = triangulated.get(i).getMatrix(0, 2, 0, 0).times(scaleFactor);
+			double error = truePoints.get(i).getMatrix(0, 2, 0, 0).minus(scaledPoint).normF();
+			reconstructionErrors.add(error);
+			totalError += error;
+//			Utils.pl("error: " + error);
+		}
+
+		return totalError;
+
+	}
+
 }

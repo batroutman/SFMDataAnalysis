@@ -34,7 +34,7 @@ public class VirtualEnvironment {
 	public void generatePlanarScene(int seed, int numPoints) {
 		this.worldPoints.clear();
 
-		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 1, 0, 0, 1, 2, 2, 2, 0.06)); // 0.06
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 1, 0, 0, 1, 2, 2, 2, 0.03)); // 0.06
 	}
 
 	public void generateSphericalScene(int seed, int numPoints) {
@@ -186,6 +186,15 @@ public class VirtualEnvironment {
 	}
 
 	public List<Correspondence2D2D> getCorrespondences() {
+		return this.getCorrespondences(new ArrayList<Matrix>());
+	}
+
+	public List<Correspondence2D2D> getCorrespondences(List<Matrix> oTruePoints) {
+
+		// output of the world coordinates that were on the screen (same order as
+		// correspondences)
+		oTruePoints.clear();
+
 		List<Correspondence2D2D> correspondences = new ArrayList<Correspondence2D2D>();
 
 		// for each world point, project into both frames
@@ -217,6 +226,7 @@ public class VirtualEnvironment {
 					&& y1 >= 0 && x1 < this.cameraParams.width && y1 < this.cameraParams.height) {
 				Correspondence2D2D c = new Correspondence2D2D(x0, y0, x1, y1);
 				correspondences.add(c);
+				oTruePoints.add(point);
 			}
 		}
 

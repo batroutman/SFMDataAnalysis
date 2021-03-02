@@ -15,6 +15,7 @@ public class Sample {
 	public Pose primaryCamera = null;
 	public Pose secondaryCamera = null;
 	public List<Correspondence2D2D> correspondences = new ArrayList<Correspondence2D2D>();
+	public List<Matrix> truePoints = new ArrayList<Matrix>();
 	public Matrix trueFundamentalMatrix = null;
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -66,6 +67,30 @@ public class Sample {
 	public List<Matrix> estPointsEstEssential = new ArrayList<Matrix>();
 
 	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////// RECONSTRUCTION ERRORS ///////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	// sum of euclidean distances between true 3D points and true triangulated
+	// points
+	double totalReconstErrorTrue = 0;
+
+	// sum of euclidean distances between true 3D points and true fundamental matrix
+	// triangulated points
+	double totalReconstErrorTrueFun = 0;
+
+	// sum of euclidean distances between true 3D points and estimated fundamental
+	// matrix triangulated points
+	double totalReconstErrorEstFun = 0;
+
+	// sum of euclidean distances between true 3D points and estimated homography
+	// triangulated points
+	double totalReconstErrorEstHomography = 0;
+
+	// sum of euclidean distances between true 3D points and estimated essential
+	// matrix triangulated points
+	double totalReconstErrorEstEssential = 0;
+
+	///////////////////////////////////////////////////////////////////////////////
 	////////////////////////// REPROJECTION ERRORS ////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
@@ -114,8 +139,8 @@ public class Sample {
 		this.primaryCamera = mock.getPrimaryCamera();
 		this.secondaryCamera = mock.getSecondaryCamera();
 
-		// get correspondences and true fundamental matrix
-		this.correspondences = mock.getCorrespondences();
+		// get correspondences, worldPoints, and true fundamental matrix
+		this.correspondences = mock.getCorrespondences(this.truePoints);
 		this.trueFundamentalMatrix = mock.getTrueFundamentalMatrix();
 
 		// correspondence summary
@@ -149,6 +174,15 @@ public class Sample {
 		this.estPointsEstEssential = ComputerVision.triangulateCorrespondences(poseEstEssential,
 				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
 
+		// reconstruction errors
+		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints);
+		this.totalReconstErrorTrueFun = ComputerVision.totalReconstructionError(this.estPointsTrueFun, this.truePoints);
+		this.totalReconstErrorEstFun = ComputerVision.totalReconstructionError(this.estPointsEstFun, this.truePoints);
+		this.totalReconstErrorEstHomography = ComputerVision.totalReconstructionError(this.estPointsEstHomography,
+				this.truePoints);
+		this.totalReconstErrorEstEssential = ComputerVision.totalReconstructionError(this.estPointsEstEssential,
+				this.truePoints);
+
 		// reprojection errors
 		this.totalReprojErrorTrue = ComputerVision.getTotalReprojectionError(
 				this.secondaryCamera.getHomogeneousMatrix(), mock.getPrimaryCamera().getHomogeneousMatrix(),
@@ -177,35 +211,36 @@ public class Sample {
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
 
 		this.transChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 3, 3).times(
-				1 / poseTrueFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseTrueFun.getMatrix(0, 2, 3, 3).normF() : 1),
+				1 / (poseTrueFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseTrueFun.getMatrix(0, 2, 3, 3).normF() : 1)),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
 								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1));
-		this.transChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 3, 3)
-				.times(1 / poseEstFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseEstFun.getMatrix(0, 2, 3, 3).normF() : 1),
+								: 1)));
+
+		this.transChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 3, 3).times(
+				1 / (poseEstFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseEstFun.getMatrix(0, 2, 3, 3).normF() : 1)),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
 								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1));
+								: 1)));
 		this.transChordalEstHomography = Utils.chordalDistance(
 				poseEstHomography.getMatrix(0, 2, 3, 3)
-						.times(1 / poseEstHomography.getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (poseEstHomography.getMatrix(0, 2, 3, 3).normF() > 0
 								? poseEstHomography.getMatrix(0, 2, 3, 3).normF()
-								: 1),
+								: 1)),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
 								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1));
+								: 1)));
 		this.transChordalEstEssential = Utils.chordalDistance(
 				poseEstEssential.getMatrix(0, 2, 3, 3)
-						.times(1 / poseEstEssential.getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (poseEstEssential.getMatrix(0, 2, 3, 3).normF() > 0
 								? poseEstEssential.getMatrix(0, 2, 3, 3).normF()
-								: 1),
+								: 1)),
 				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
 								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1));
+								: 1)));
 
 	}
 
@@ -264,6 +299,13 @@ public class Sample {
 
 		// correspondence summary
 		output += this.correspondenceSummary.stringify();
+
+		// true points
+		for (int i = 0; i < this.truePoints.size(); i++) {
+			Matrix p = this.truePoints.get(i);
+			output += p.get(0, 0) + "," + p.get(1, 0) + "," + p.get(2, 0) + "|";
+		}
+		output += "\n";
 
 		// true fundamental matrix (row major order)
 		for (int i = 0; i < this.trueFundamentalMatrix.getRowDimension(); i++) {
@@ -364,6 +406,11 @@ public class Sample {
 		}
 		output += "\n";
 
+		// total reconstruction errors
+		// (totalReprojErrorTrue,totalReprojErrorTrueFun,totalReprojErrorEstFun,totalReprojErrorEstHomography)
+		output += this.totalReconstErrorTrue + "," + this.totalReconstErrorTrueFun + "," + this.totalReconstErrorEstFun
+				+ "," + this.totalReconstErrorEstHomography + "," + this.totalReconstErrorEstEssential + "\n";
+
 		// total reprojection errors
 		// (totalReprojErrorTrue,totalReprojErrorTrueFun,totalReprojErrorEstFun,totalReprojErrorEstHomography)
 		output += this.totalReprojErrorTrue + "," + this.totalReprojErrorTrueFun + "," + this.totalReprojErrorEstFun
@@ -435,6 +482,21 @@ public class Sample {
 
 		// correspondence summary
 		sample.correspondenceSummary = CorrespondenceSummary.parse(lines[line]);
+		line++;
+
+		// estPointsTrue
+		String[] truePointsLine = lines[line].split("\\|");
+		List<Matrix> truePoints = new ArrayList<Matrix>(truePointsLine.length);
+		for (int i = 0; i < truePointsLine.length; i++) {
+			String[] coords = truePointsLine[i].split(",");
+			Matrix p = new Matrix(4, 1);
+			p.set(0, 0, Double.parseDouble(coords[0]));
+			p.set(1, 0, Double.parseDouble(coords[1]));
+			p.set(2, 0, Double.parseDouble(coords[2]));
+			p.set(3, 0, 1);
+			truePoints.add(p);
+		}
+		sample.truePoints = truePoints;
 		line++;
 
 		// true fundamental matrix
@@ -598,6 +660,15 @@ public class Sample {
 			estPointsEstEssential.add(p);
 		}
 		sample.estPointsEstEssential = estPointsEstEssential;
+		line++;
+
+		// reconstruction errors
+		String[] reconstErrorLine = lines[line].split(",");
+		sample.totalReconstErrorTrue = Double.parseDouble(reconstErrorLine[0]);
+		sample.totalReconstErrorTrueFun = Double.parseDouble(reconstErrorLine[1]);
+		sample.totalReconstErrorEstFun = Double.parseDouble(reconstErrorLine[2]);
+		sample.totalReconstErrorEstHomography = Double.parseDouble(reconstErrorLine[3]);
+		sample.totalReconstErrorEstEssential = Double.parseDouble(reconstErrorLine[4]);
 		line++;
 
 		// reprojection errors

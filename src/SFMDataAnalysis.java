@@ -35,6 +35,24 @@ public class SFMDataAnalysis {
 		test4();
 	}
 
+	public static void test6() {
+
+		VirtualEnvironment mock = new VirtualEnvironment();
+		mock.generateSphericalScene(0, 1000);
+		mock.getSecondaryCamera().setCz(-1);
+		mock.getSecondaryCamera().setCy(-0.25);
+		mock.getSecondaryCamera().rotateEuler(0, -0.125, 0);
+
+		Sample sample = new Sample();
+		sample.evaluate(mock);
+
+		double totalError = ComputerVision.totalReconstructionError(sample.estPointsEstFun, sample.truePoints);
+		double avgError = totalError / sample.truePoints.size();
+		Utils.pl("totalError: " + totalError);
+		Utils.pl("avgError: " + avgError);
+
+	}
+
 	public static double getAngle(Correspondence2D2D c) {
 
 		// get x and y values
@@ -50,16 +68,16 @@ public class SFMDataAnalysis {
 
 	public static void test5() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-//		mock.generateSphericalScene(0, 1000);
-		mock.getSecondaryCamera().setCz(1);
+		mock.generateSphericalScene(0, 1000);
+		mock.getSecondaryCamera().setCz(-1);
 		mock.getSecondaryCamera().setCx(-0.25);
-		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
+//		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
 
 //		mock.getSecondaryCamera().setCz(-0.125);
 //		mock.getSecondaryCamera().setCx(-0.25);
-//		mock.getSecondaryCamera().rotateEuler(0, -0.125, 0);
+		mock.getSecondaryCamera().rotateEuler(0, -0.125, 0);
 
-		mock.generatePlanarScene(0, 1000);
+//		mock.generatePlanarScene(0, 1000);
 
 		Utils.pl("numCorrespondences: " + mock.getCorrespondences().size());
 
@@ -96,7 +114,7 @@ public class SFMDataAnalysis {
 	// by charting them
 	public static void test4() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.generateSphericalScene(0, 1000);
+		mock.generatePlanarScene(0, 1000);
 
 		// initial secondary camera
 		double z = 0;
@@ -107,8 +125,8 @@ public class SFMDataAnalysis {
 		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
 
 		// ending params and motion params
-//		double endZ = -0.125;
-//		double endX = -0.25;
+//		double endZ = -0.8;
+//		double endX = -0.707;
 		double endZ = 0;
 		double endX = 0;
 		double endRotY = -0.125;
@@ -144,11 +162,22 @@ public class SFMDataAnalysis {
 			Sample sample = new Sample();
 			sample.evaluate(mock);
 
-			valueListFun[i] = sample.transChordalEstFun;
-			valueListHom[i] = sample.transChordalEstHomography;
-			valueListEss[i] = sample.transChordalEstEssential;
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+			Utils.pl("avg essential reconstruction error: "
+					+ sample.totalReconstErrorEstEssential / sample.truePoints.size());
+			Utils.pl("sample.transChordalEstFun: " + sample.transChordalEstFun);
 
-			sample.poseEstHomography.print(10, 5);
+			// average reconstruction errors
+			valueListFun[i] = sample.totalReconstErrorEstFun / sample.truePoints.size();
+			valueListHom[i] = sample.totalReconstErrorEstHomography / sample.truePoints.size();
+			valueListEss[i] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
+
+			// translational chordal distance
+//			valueListFun[i] = sample.transChordalEstFun;
+//			valueListHom[i] = sample.transChordalEstHomography;
+//			valueListEss[i] = sample.transChordalEstEssential;
+
+			sample.poseEstFun.print(10, 5);
 			sample.secondaryCamera.getHomogeneousMatrix().print(10, 5);
 
 			samples.add(sample);
@@ -162,9 +191,12 @@ public class SFMDataAnalysis {
 		Mat image = mock.getPrimaryImage();
 
 		// Create Chart
+		// Rescaled Average Reconstruction Error
+		// Normalized Translational Chordal Distance
 		final XYChart chart = new XYChartBuilder().width(600).height(400)
-				.title("Error Metric Over Baseline for Planar Scene").xAxisTitle("Baseline Length")
-				.yAxisTitle("Normalized Translational Chordal Distance").build();
+				.title("Error Metric Over Baseline for Noisy Planar Scene (Pure Rotation)")
+				.xAxisTitle("Iteration (Higher = More Rotation)").yAxisTitle("Rescaled Average Reconstruction Error")
+				.build();
 
 		// Customize Chart
 		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);

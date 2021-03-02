@@ -74,6 +74,9 @@ public class Utils {
 	}
 
 	public static double chordalDistance(Matrix R1, Matrix R2) {
+		pl("chordal distance calculation: ");
+		R1.print(5, 4);
+		R2.print(5, 4);
 		return R1.minus(R2).normF();
 	}
 
