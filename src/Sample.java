@@ -146,6 +146,11 @@ public class Sample {
 		// correspondence summary
 		this.correspondenceSummary.evaluate(this.correspondences);
 
+		// if not enough correspondences, terminate now
+		if (this.correspondences.size() < 10) {
+			return;
+		}
+
 		// estimated fundamental matrix and homography
 		this.estimatedFundamentalMatrix = ComputerVision.estimateFundamentalMatrix(this.correspondences);
 		this.estimatedHomography = ComputerVision.estimateHomography(this.correspondences);

@@ -1,5 +1,7 @@
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
@@ -32,7 +34,7 @@ public class SFMDataAnalysis {
 		// link OpenCV binaries
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		System.out.println("Hello world!");
-		test4();
+		generateTrainingData();
 	}
 
 	public static void test6() {
@@ -45,6 +47,21 @@ public class SFMDataAnalysis {
 
 		Sample sample = new Sample();
 		sample.evaluate(mock);
+
+		FinalizedData fd = new FinalizedData();
+		fd.summary = sample.correspondenceSummary;
+		fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
+		fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
+		fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+		fd.transChordalEstFun = sample.transChordalEstFun;
+		fd.transChordalEstHomography = sample.transChordalEstHomography;
+		fd.transChordalEstEssential = sample.transChordalEstEssential;
+
+		String serial = fd.stringify();
+		Utils.pl("serial: \n" + serial);
+
+		FinalizedData copy = FinalizedData.parse(serial);
+		Utils.pl("copy:\n" + copy.stringify());
 
 		double totalError = ComputerVision.totalReconstructionError(sample.estPointsEstFun, sample.truePoints);
 		double avgError = totalError / sample.truePoints.size();
@@ -130,7 +147,7 @@ public class SFMDataAnalysis {
 		double endZ = 0;
 		double endX = 0;
 		double endRotY = -0.125;
-		int numIterations = 100;
+		int numIterations = 50;
 		double changeZ = (endZ - z) / numIterations;
 		double changeX = (endX - x) / numIterations;
 		double changeRotY = (endRotY - rotY) / numIterations;
@@ -392,4 +409,111 @@ public class SFMDataAnalysis {
 
 	}
 
+	public static void generateTrainingData() {
+
+		String OUT_FILE = "results/data/train-" + System.currentTimeMillis() + ".dat";
+		String serializedData = "";
+		Random rand = new Random(0);
+
+		// randomly generate scenarios //
+		int rejects = 0;
+		int accepts = 0;
+		int failed = 0;
+
+		// high-parallax
+		int highParallaxIterations = 1000;
+		double maxBaseline = 0.4;
+		double rotRange = 0.25;
+		double rotOffset = rotRange / 2;
+		VirtualEnvironment hpMock = new VirtualEnvironment();
+		hpMock.generateSphericalScene(0, 1000);
+
+		for (int i = 0; i < highParallaxIterations; i++) {
+
+			Utils.pl("iteration: " + i);
+
+			// decide camera movement
+			double baseline = rand.nextDouble() * maxBaseline;
+			double x = rand.nextDouble() - 0.5;
+			double y = rand.nextDouble() - 0.5;
+			double z = rand.nextDouble() - 0.5;
+			double mag = Math.sqrt(x * x + y * y + z * z);
+			x = x / mag * baseline;
+			y = y / mag * baseline;
+			z = z / mag * baseline;
+
+			double rotX = rand.nextDouble() * rotRange - rotOffset;
+			double rotY = rand.nextDouble() * rotRange - rotOffset;
+			double rotZ = rand.nextDouble() * rotRange - rotOffset;
+
+			hpMock.getSecondaryCamera().setCx(x);
+			hpMock.getSecondaryCamera().setCy(y);
+			hpMock.getSecondaryCamera().setCz(z);
+			hpMock.getSecondaryCamera().setQw(1);
+			hpMock.getSecondaryCamera().setQx(0);
+			hpMock.getSecondaryCamera().setQy(0);
+			hpMock.getSecondaryCamera().setQz(0);
+			hpMock.getSecondaryCamera().rotateEuler(rotX, rotY, rotZ);
+
+			Utils.pl("baseline: " + baseline);
+			Utils.pl("x, y, z:");
+			Utils.pl(x);
+			Utils.pl(y);
+			Utils.pl(z);
+			Utils.pl("rotation:");
+			Utils.pl(rotX);
+			Utils.pl(rotY);
+			Utils.pl(rotZ);
+
+			Sample sample = new Sample();
+			sample.evaluate(hpMock);
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+
+			if (sample.correspondences.size() >= 10) {
+				FinalizedData fd = new FinalizedData();
+				fd.summary = sample.correspondenceSummary;
+				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
+				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
+				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.transChordalEstFun = sample.transChordalEstFun;
+				fd.transChordalEstHomography = sample.transChordalEstHomography;
+				fd.transChordalEstEssential = sample.transChordalEstEssential;
+
+				serializedData += fd.stringify();
+
+				if (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences > 0.04 || fd.transChordalEstFun > 0.04) {
+					rejects++;
+				} else {
+					accepts++;
+				}
+
+			} else {
+				failed++;
+				Utils.pl("FAILED");
+			}
+
+			Utils.pl("");
+		}
+
+		// planar (noisy)
+
+		// pure rotation, high parallax
+
+		// pure rotation, noisy plane
+
+		Utils.pl("rejects: " + rejects + " (" + (int) ((double) rejects * 100 / (rejects + accepts)) + "%)");
+		Utils.pl("accepts: " + accepts + " (" + (int) ((double) accepts * 100 / (rejects + accepts)) + "%)");
+		Utils.pl("failed: " + failed);
+		Utils.pl("total: " + (rejects + accepts + failed));
+
+		// save data
+		try {
+			FileWriter fw = new FileWriter(OUT_FILE);
+			fw.write(serializedData);
+			fw.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
 }

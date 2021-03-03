@@ -119,7 +119,7 @@ public class CorrespondenceSummary {
 		this.stdDevDisparity = Math.sqrt(sumSqDev / this.numCorrespondences);
 
 		long end = System.currentTimeMillis();
-		Utils.pl("correspondence summary time: " + (end - start) + "ms");
+//		Utils.pl("correspondence summary time: " + (end - start) + "ms");
 
 	}
 
