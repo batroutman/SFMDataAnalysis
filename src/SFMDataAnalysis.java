@@ -34,6 +34,7 @@ public class SFMDataAnalysis {
 		// link OpenCV binaries
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		System.out.println("Hello world!");
+//		test5();
 		generateTrainingData();
 	}
 
@@ -85,16 +86,16 @@ public class SFMDataAnalysis {
 
 	public static void test5() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.generateSphericalScene(0, 1000);
-		mock.getSecondaryCamera().setCz(-1);
-		mock.getSecondaryCamera().setCx(-0.25);
+//		mock.generateSphericalScene(0, 1000);
+		mock.getSecondaryCamera().setCz(0);
+		mock.getSecondaryCamera().setCx(0);
 //		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
 
 //		mock.getSecondaryCamera().setCz(-0.125);
 //		mock.getSecondaryCamera().setCx(-0.25);
-		mock.getSecondaryCamera().rotateEuler(0, -0.125, 0);
+		mock.getSecondaryCamera().rotateEuler(-0.02916360814835181, -0.08851323731413557, 0.029986870696727896);
 
-//		mock.generatePlanarScene(0, 1000);
+		mock.generatePlanarScene(0, 1000);
 
 		Utils.pl("numCorrespondences: " + mock.getCorrespondences().size());
 
@@ -273,6 +274,10 @@ public class SFMDataAnalysis {
 	}
 
 	public static void test2() {
+		Double a = Double.parseDouble("NaN");
+		Utils.pl("a: " + a);
+		Utils.pl("a < 0.4: " + (a < 0.4));
+		Utils.pl("a > 0.4: " + (a > 0.4));
 		Correspondence2D2D c = new Correspondence2D2D();
 		c.setX0(0);
 		c.setX1(1);
@@ -421,7 +426,7 @@ public class SFMDataAnalysis {
 		int failed = 0;
 
 		// high-parallax
-		int highParallaxIterations = 1000;
+		int highParallaxIterations = 100;
 		double maxBaseline = 0.4;
 		double rotRange = 0.25;
 		double rotOffset = rotRange / 2;
@@ -478,6 +483,7 @@ public class SFMDataAnalysis {
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;
+				fd.baseline = baseline;
 
 				serializedData += fd.stringify();
 
@@ -496,15 +502,241 @@ public class SFMDataAnalysis {
 		}
 
 		// planar (noisy)
+		Utils.pl("");
+		Utils.pl("=====================================================================================");
+		Utils.pl("====================================  PLANAR SCENE  =================================");
+		Utils.pl("=====================================================================================");
+		Utils.pl("");
+		int planarIterations = 100;
+		maxBaseline = 0.4;
+		rotRange = 0.25;
+		rotOffset = rotRange / 2;
+		VirtualEnvironment parallelMock = new VirtualEnvironment();
+		parallelMock.generatePlanarScene(0, 1000);
+
+		for (int i = 0; i < planarIterations; i++) {
+
+			Utils.pl("iteration: " + i);
+
+			// decide camera movement
+			double baseline = rand.nextDouble() * maxBaseline;
+			double x = rand.nextDouble() - 0.5;
+			double y = rand.nextDouble() - 0.5;
+			double z = rand.nextDouble() - 0.5;
+			double mag = Math.sqrt(x * x + y * y + z * z);
+			x = x / mag * baseline;
+			y = y / mag * baseline;
+			z = z / mag * baseline;
+
+			double rotX = rand.nextDouble() * rotRange - rotOffset;
+			double rotY = rand.nextDouble() * rotRange - rotOffset;
+			double rotZ = rand.nextDouble() * rotRange - rotOffset;
+
+			parallelMock.getSecondaryCamera().setCx(x);
+			parallelMock.getSecondaryCamera().setCy(y);
+			parallelMock.getSecondaryCamera().setCz(z);
+			parallelMock.getSecondaryCamera().setQw(1);
+			parallelMock.getSecondaryCamera().setQx(0);
+			parallelMock.getSecondaryCamera().setQy(0);
+			parallelMock.getSecondaryCamera().setQz(0);
+			parallelMock.getSecondaryCamera().rotateEuler(rotX, rotY, rotZ);
+
+			Utils.pl("baseline: " + baseline);
+			Utils.pl("x, y, z:");
+			Utils.pl(x);
+			Utils.pl(y);
+			Utils.pl(z);
+			Utils.pl("rotation:");
+			Utils.pl(rotX);
+			Utils.pl(rotY);
+			Utils.pl(rotZ);
+
+			Sample sample = new Sample();
+			sample.evaluate(parallelMock);
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+
+			if (sample.correspondences.size() >= 10) {
+				FinalizedData fd = new FinalizedData();
+				fd.summary = sample.correspondenceSummary;
+				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
+				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
+				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.transChordalEstFun = sample.transChordalEstFun;
+				fd.transChordalEstHomography = sample.transChordalEstHomography;
+				fd.transChordalEstEssential = sample.transChordalEstEssential;
+				fd.baseline = baseline;
+
+				serializedData += fd.stringify();
+
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
+						|| fd.transChordalEstHomography > 0.04) {
+					rejects++;
+				} else {
+					accepts++;
+				}
+
+			} else {
+				failed++;
+				Utils.pl("FAILED");
+			}
+
+			Utils.pl("");
+		}
 
 		// pure rotation, high parallax
+		double rotationAccepts = 0;
+		double rotationRejects = 0;
+		double rotationFails = 0;
+		Utils.pl("");
+		Utils.pl("=====================================================================================");
+		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
+		Utils.pl("=====================================================================================");
+		Utils.pl("");
+		int hpRotationIterations = 100;
+		rotRange = 0.25;
+		rotOffset = rotRange / 2;
+		VirtualEnvironment hpRotationMock = new VirtualEnvironment();
+		hpRotationMock.generateSphericalScene(0, 1000);
+
+		for (int i = 0; i < hpRotationIterations; i++) {
+
+			Utils.pl("iteration: " + i);
+
+			// decide camera movement
+
+			double rotX = rand.nextDouble() * rotRange - rotOffset;
+			double rotY = rand.nextDouble() * rotRange - rotOffset;
+			double rotZ = rand.nextDouble() * rotRange - rotOffset;
+
+			hpRotationMock.getSecondaryCamera().setCx(0);
+			hpRotationMock.getSecondaryCamera().setCy(0);
+			hpRotationMock.getSecondaryCamera().setCz(0);
+			hpRotationMock.getSecondaryCamera().setQw(1);
+			hpRotationMock.getSecondaryCamera().setQx(0);
+			hpRotationMock.getSecondaryCamera().setQy(0);
+			hpRotationMock.getSecondaryCamera().setQz(0);
+			hpRotationMock.getSecondaryCamera().rotateEuler(rotX, rotY, rotZ);
+
+			Utils.pl("baseline: 0");
+			Utils.pl("rotation:");
+			Utils.pl(rotX);
+			Utils.pl(rotY);
+			Utils.pl(rotZ);
+
+			Sample sample = new Sample();
+			sample.evaluate(hpRotationMock);
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+
+			if (sample.correspondences.size() >= 10) {
+				FinalizedData fd = new FinalizedData();
+				fd.summary = sample.correspondenceSummary;
+				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
+				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
+				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.transChordalEstFun = sample.transChordalEstFun;
+				fd.transChordalEstHomography = sample.transChordalEstHomography;
+				fd.transChordalEstEssential = sample.transChordalEstEssential;
+				fd.baseline = 0;
+
+				serializedData += fd.stringify();
+
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
+						|| fd.transChordalEstHomography > 0.04 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
+					rotationRejects++;
+				} else {
+					rotationAccepts++;
+				}
+
+			} else {
+				rotationFails++;
+				Utils.pl("FAILED");
+			}
+
+			Utils.pl("");
+		}
 
 		// pure rotation, noisy plane
+		Utils.pl("");
+		Utils.pl("=====================================================================================");
+		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
+		Utils.pl("=====================================================================================");
+		Utils.pl("");
+		int planarRotationIterations = 100;
+		rotRange = 0.25;
+		rotOffset = rotRange / 2;
+		VirtualEnvironment planarRotationMock = new VirtualEnvironment();
+		planarRotationMock.generatePlanarScene(0, 1000);
+
+		for (int i = 0; i < planarRotationIterations; i++) {
+
+			Utils.pl("iteration: " + i);
+
+			// decide camera movement
+
+			double rotX = rand.nextDouble() * rotRange - rotOffset;
+			double rotY = rand.nextDouble() * rotRange - rotOffset;
+			double rotZ = rand.nextDouble() * rotRange - rotOffset;
+
+			planarRotationMock.getSecondaryCamera().setCx(0);
+			planarRotationMock.getSecondaryCamera().setCy(0);
+			planarRotationMock.getSecondaryCamera().setCz(0);
+			planarRotationMock.getSecondaryCamera().setQw(1);
+			planarRotationMock.getSecondaryCamera().setQx(0);
+			planarRotationMock.getSecondaryCamera().setQy(0);
+			planarRotationMock.getSecondaryCamera().setQz(0);
+			planarRotationMock.getSecondaryCamera().rotateEuler(rotX, rotY, rotZ);
+
+			Utils.pl("baseline: 0");
+			Utils.pl("rotation:");
+			Utils.pl(rotX);
+			Utils.pl(rotY);
+			Utils.pl(rotZ);
+
+			Sample sample = new Sample();
+			sample.evaluate(planarRotationMock);
+			Utils.pl("numCorrespondences: " + sample.correspondences.size());
+
+			if (sample.correspondences.size() >= 10) {
+				FinalizedData fd = new FinalizedData();
+				fd.summary = sample.correspondenceSummary;
+				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
+				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
+				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.transChordalEstFun = sample.transChordalEstFun;
+				fd.transChordalEstHomography = sample.transChordalEstHomography;
+				fd.transChordalEstEssential = sample.transChordalEstEssential;
+				fd.baseline = 0;
+
+				serializedData += fd.stringify();
+
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
+						|| fd.transChordalEstHomography > 0.04 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
+					rotationRejects++;
+				} else {
+					rotationAccepts++;
+				}
+
+			} else {
+				rotationFails++;
+				Utils.pl("FAILED");
+			}
+
+			Utils.pl("");
+		}
 
 		Utils.pl("rejects: " + rejects + " (" + (int) ((double) rejects * 100 / (rejects + accepts)) + "%)");
 		Utils.pl("accepts: " + accepts + " (" + (int) ((double) accepts * 100 / (rejects + accepts)) + "%)");
 		Utils.pl("failed: " + failed);
 		Utils.pl("total: " + (rejects + accepts + failed));
+
+		Utils.pl("");
+
+		Utils.pl("rotation rejects: " + rotationRejects + " ("
+				+ (int) ((double) rotationRejects * 100 / (rotationRejects + rotationAccepts)) + "%)");
+		Utils.pl("rotation accepts: " + rotationAccepts + " ("
+				+ (int) ((double) rotationAccepts * 100 / (rotationRejects + rotationAccepts)) + "%)");
+		Utils.pl("rotation failed: " + rotationFails);
+		Utils.pl("rotation total: " + (rotationRejects + rotationAccepts + rotationFails));
 
 		// save data
 		try {

@@ -13,6 +13,9 @@ public class FinalizedData {
 	public double transChordalEstHomography = 0;
 	public double transChordalEstEssential = 0;
 
+	// other ground truth data
+	public double baseline = 0;
+
 	public FinalizedData() {
 
 	}
@@ -22,7 +25,7 @@ public class FinalizedData {
 
 		output += this.totalReconstErrorEstFun + "," + this.totalReconstErrorEstHomography + ","
 				+ this.totalReconstErrorEstEssential + "," + this.transChordalEstFun + ","
-				+ this.transChordalEstHomography + "," + this.transChordalEstEssential + "\n";
+				+ this.transChordalEstHomography + "," + this.transChordalEstEssential + "," + this.baseline + "\n";
 
 		return output;
 	}
@@ -39,6 +42,7 @@ public class FinalizedData {
 		fd.transChordalEstFun = Double.parseDouble(errors[3]);
 		fd.transChordalEstHomography = Double.parseDouble(errors[4]);
 		fd.transChordalEstEssential = Double.parseDouble(errors[5]);
+		fd.baseline = Double.parseDouble(errors[6]);
 
 		return fd;
 	}
