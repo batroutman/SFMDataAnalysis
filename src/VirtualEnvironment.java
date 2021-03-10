@@ -31,19 +31,19 @@ public class VirtualEnvironment {
 
 	}
 
-	public void generatePlanarScene(int seed, int numPoints) {
+	public void generatePlanarScene(long seed, int numPoints) {
 		this.worldPoints.clear();
 
 		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 1, 0, 0, 1, 2, 2, 2, 0.03)); // 0.06
 	}
 
-	public void generateSphericalScene(int seed, int numPoints) {
+	public void generateSphericalScene(long seed, int numPoints) {
 		this.worldPoints.clear();
 
 		this.worldPoints.addAll(this.getPointsInSphere(seed, numPoints, 0, 0, 0, 1, 1));
 	}
 
-	public List<Matrix> getPointsInPlane(int seed, int numPoints, double x0, double y0, double z0, double normalX,
+	public List<Matrix> getPointsInPlane(long seed, int numPoints, double x0, double y0, double z0, double normalX,
 			double normalY, double normalZ, double xRange, double yRange, double zRange, double noiseRange) {
 
 		List<Matrix> points = new ArrayList<Matrix>();
@@ -92,7 +92,7 @@ public class VirtualEnvironment {
 
 	}
 
-	public List<Matrix> getPointsInSphere(int seed, int numPoints, double x0, double y0, double z0, double radius,
+	public List<Matrix> getPointsInSphere(long seed, int numPoints, double x0, double y0, double z0, double radius,
 			double noiseRange) {
 
 		List<Matrix> points = new ArrayList<Matrix>();

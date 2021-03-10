@@ -162,8 +162,14 @@ public class Sample {
 				mock.getCameraParams(), this.correspondences);
 		this.poseEstFun = ComputerVision.getPoseFromFundamentalMatrix(this.estimatedFundamentalMatrix,
 				mock.getCameraParams(), this.correspondences);
-		this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography, mock.getPrimaryCamera(),
-				mock.getCameraParams(), correspondences);
+		try {
+			this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography,
+					mock.getPrimaryCamera(), mock.getCameraParams(), correspondences);
+		} catch (Exception e) {
+			Utils.pl("Homography estimation broke. Defaulting to identity.");
+			this.poseEstHomography = Matrix.identity(4, 4);
+		}
+
 		this.poseEstEssential = ComputerVision.getPoseFromEssentialMatrix(this.estimatedEssentialMatrix,
 				mock.getCameraParams(), this.correspondences);
 
