@@ -134,14 +134,28 @@ public class Sample {
 	}
 
 	public void evaluate(VirtualEnvironment mock) {
+		evaluate(mock.getPrimaryCamera(), mock.getSecondaryCamera(), mock.getCorrespondences(this.truePoints),
+				mock.getCameraParams(), mock.getTrueFundamentalMatrix(), false);
+	}
+
+	public void evaluate(Pose primaryCamera, Pose secondaryCamera, List<Correspondence2D2D> correspondences,
+			CameraParams cameraParams, Matrix trueFunMat, boolean calcTruePoints) {
 
 		// set cameras
-		this.primaryCamera = mock.getPrimaryCamera();
-		this.secondaryCamera = mock.getSecondaryCamera();
+		this.primaryCamera = primaryCamera;
+		this.secondaryCamera = secondaryCamera;
 
 		// get correspondences, worldPoints, and true fundamental matrix
-		this.correspondences = mock.getCorrespondences(this.truePoints);
-		this.trueFundamentalMatrix = mock.getTrueFundamentalMatrix();
+		this.correspondences = correspondences;
+		this.trueFundamentalMatrix = trueFunMat;
+
+		if (calcTruePoints) {
+			this.truePoints.clear();
+			for (int i = 0; i < correspondences.size(); i++) {
+				this.truePoints.add(ComputerVision.triangulate(secondaryCamera.getHomogeneousMatrix(),
+						primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences.get(i)));
+			}
+		}
 
 		// correspondence summary
 		this.correspondenceSummary.evaluate(this.correspondences);
@@ -154,36 +168,35 @@ public class Sample {
 		// estimated fundamental matrix and homography
 		this.estimatedFundamentalMatrix = ComputerVision.estimateFundamentalMatrix(this.correspondences);
 		this.estimatedHomography = ComputerVision.estimateHomography(this.correspondences);
-		this.estimatedEssentialMatrix = ComputerVision.estimateEssentialMatrix(this.correspondences,
-				mock.getCameraParams());
+		this.estimatedEssentialMatrix = ComputerVision.estimateEssentialMatrix(this.correspondences, cameraParams);
 
 		// estimated poses
-		this.poseTrueFun = ComputerVision.getPoseFromFundamentalMatrix(this.trueFundamentalMatrix,
-				mock.getCameraParams(), this.correspondences);
-		this.poseEstFun = ComputerVision.getPoseFromFundamentalMatrix(this.estimatedFundamentalMatrix,
-				mock.getCameraParams(), this.correspondences);
+		this.poseTrueFun = ComputerVision.getPoseFromFundamentalMatrix(this.trueFundamentalMatrix, cameraParams,
+				this.correspondences);
+		this.poseEstFun = ComputerVision.getPoseFromFundamentalMatrix(this.estimatedFundamentalMatrix, cameraParams,
+				this.correspondences);
 		try {
-			this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography,
-					mock.getPrimaryCamera(), mock.getCameraParams(), correspondences);
+			this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography, this.primaryCamera,
+					cameraParams, correspondences);
 		} catch (Exception e) {
 			Utils.pl("Homography estimation broke. Defaulting to identity.");
 			this.poseEstHomography = Matrix.identity(4, 4);
 		}
 
-		this.poseEstEssential = ComputerVision.getPoseFromEssentialMatrix(this.estimatedEssentialMatrix,
-				mock.getCameraParams(), this.correspondences);
+		this.poseEstEssential = ComputerVision.getPoseFromEssentialMatrix(this.estimatedEssentialMatrix, cameraParams,
+				this.correspondences);
 
 		// 3D point estimations
 		this.estPointsTrue = ComputerVision.triangulateCorrespondences(this.secondaryCamera.getHomogeneousMatrix(),
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 		this.estPointsTrueFun = ComputerVision.triangulateCorrespondences(poseTrueFun,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 		this.estPointsEstFun = ComputerVision.triangulateCorrespondences(poseEstFun,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 		this.estPointsEstHomography = ComputerVision.triangulateCorrespondences(poseEstHomography,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 		this.estPointsEstEssential = ComputerVision.triangulateCorrespondences(poseEstEssential,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 
 		// reconstruction errors
 		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints);
@@ -196,20 +209,16 @@ public class Sample {
 
 		// reprojection errors
 		this.totalReprojErrorTrue = ComputerVision.getTotalReprojectionError(
-				this.secondaryCamera.getHomogeneousMatrix(), mock.getPrimaryCamera().getHomogeneousMatrix(),
-				mock.getCameraParams(), correspondences, this.estPointsTrue);
+				this.secondaryCamera.getHomogeneousMatrix(), this.primaryCamera.getHomogeneousMatrix(), cameraParams,
+				correspondences, this.estPointsTrue);
 		this.totalReprojErrorTrueFun = ComputerVision.getTotalReprojectionError(this.poseTrueFun,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
-				this.estPointsTrueFun);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsTrueFun);
 		this.totalReprojErrorEstFun = ComputerVision.getTotalReprojectionError(this.poseEstFun,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
-				this.estPointsEstFun);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstFun);
 		this.totalReprojErrorEstHomography = ComputerVision.getTotalReprojectionError(this.poseEstHomography,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
-				this.estPointsEstHomography);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstHomography);
 		this.totalReprojErrorEstEssential = ComputerVision.getTotalReprojectionError(this.poseEstEssential,
-				mock.getPrimaryCamera().getHomogeneousMatrix(), mock.getCameraParams(), correspondences,
-				this.estPointsEstEssential);
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstEssential);
 
 		// chordal distances
 		this.rotChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 0, 2),

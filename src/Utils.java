@@ -83,4 +83,38 @@ public class Utils {
 
 	}
 
+	// return a Pose P such that P * pose0 = pose1
+	public static Pose getPoseDifference(Pose pose0, Pose pose1) {
+		Matrix q1 = new Matrix(4, 1);
+		q1.set(0, 0, pose1.getQw());
+		q1.set(1, 0, pose1.getQx());
+		q1.set(2, 0, pose1.getQy());
+		q1.set(3, 0, pose1.getQz());
+
+		// invert the initial pose quaternion
+		Matrix q0Inv = new Matrix(4, 1);
+		q0Inv.set(0, 0, pose0.getQw());
+		q0Inv.set(1, 0, -pose0.getQx());
+		q0Inv.set(2, 0, -pose0.getQy());
+		q0Inv.set(3, 0, -pose0.getQz());
+
+		// calculate the new rotation difference from pose0 -> pose1
+		Matrix newQuat = quatMult(q1, q0Inv);
+
+		// calculate absolute translation difference
+		double cx = pose1.getCx() - pose0.getCx();
+		double cy = pose1.getCy() - pose0.getCy();
+		double cz = pose1.getCz() - pose0.getCz();
+
+		Pose newPose = new Pose();
+		newPose.setQw(newQuat.get(0, 0));
+		newPose.setQx(newQuat.get(1, 0));
+		newPose.setQy(newQuat.get(2, 0));
+		newPose.setQz(newQuat.get(3, 0));
+		newPose.setCx(cx);
+		newPose.setCy(cy);
+		newPose.setCz(cz);
+		return newPose;
+	}
+
 }

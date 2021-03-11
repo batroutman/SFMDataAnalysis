@@ -25,16 +25,17 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 public class ModelTesting {
 
 	public static enum MODE {
-		FUNDAMENTAL, HOMOGRAPHY, ROTATION
+		FUNDAMENTAL, ESSENTIAL, HOMOGRAPHY, ROTATION
 	}
 
 	public interface LabelMaker {
 		public int getLabel(FinalizedData fd);
 	}
 
-	public static void trainModelFromScratch(String trainingFilename, String testingFilename, MODE mode) {
+	public static void trainModelFromScratch(String trainingFilename, String testingFilename, MODE mode,
+			boolean excludePureRotation) {
 
-		long EPOCHS = 1000000;
+		long EPOCHS = 100000;
 
 		SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss");
 		Date date = new Date();
@@ -43,7 +44,13 @@ public class ModelTesting {
 		String MODEL_FILE_NAME = "logreg_" + mode.name() + "_" + formatter.format(date);
 
 		// load training data
-		List<FinalizedData> train = loadData(trainingFilename);
+		List<FinalizedData> pretrain = loadData(trainingFilename);
+		List<FinalizedData> train = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretrain.size(); i++) {
+			if (!excludePureRotation || pretrain.get(i).baseline > 0) {
+				train.add(pretrain.get(i));
+			}
+		}
 
 		// generate labels
 		LabelMaker labeler;
@@ -52,6 +59,13 @@ public class ModelTesting {
 			labeler = new LabelMaker() {
 				public int getLabel(FinalizedData fd) {
 					return getLabelFundamental(fd);
+				}
+			};
+		} else if (mode == MODE.ESSENTIAL) {
+			Utils.pl("training for essential matrix case.");
+			labeler = new LabelMaker() {
+				public int getLabel(FinalizedData fd) {
+					return getLabelEssential(fd);
 				}
 			};
 		} else if (mode == MODE.HOMOGRAPHY) {
@@ -108,7 +122,13 @@ public class ModelTesting {
 		}
 
 		// load testing data
-		List<FinalizedData> test = loadData(testingFilename);
+		List<FinalizedData> pretest = loadData(testingFilename);
+		List<FinalizedData> test = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretest.size(); i++) {
+			if (!excludePureRotation || pretest.get(i).baseline > 0) {
+				test.add(pretest.get(i));
+			}
+		}
 
 		// generate test labels
 		INDArray testLabels = Nd4j.zeros(test.size(), 1);
@@ -137,8 +157,9 @@ public class ModelTesting {
 
 		// save model
 		try {
-			String modelSave = MODELS_PATH + MODEL_FILE_NAME + "-P" + String.format("%.4f", eval.precision()) + "-R"
-					+ String.format("%.4f", eval.recall()) + "-F" + String.format("%.4f", eval.f1()) + ".model";
+			String modelSave = MODELS_PATH + MODEL_FILE_NAME + (excludePureRotation ? "_rotExcluded" : "") + "-P"
+					+ String.format("%.4f", eval.precision()) + "-R" + String.format("%.4f", eval.recall()) + "-F"
+					+ String.format("%.4f", eval.f1()) + ".model";
 			Utils.pl("saving model as " + modelSave);
 			model.save(new File(modelSave));
 		} catch (Exception e) {
@@ -159,6 +180,13 @@ public class ModelTesting {
 	public static int getLabelHomography(FinalizedData fd) {
 		return fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences < 0.04
 				&& fd.transChordalEstHomography < 0.04 ? 1 : 0;
+	}
+
+	// return label indicating whether or not the correspondences would be good for
+	// an essential matrix estimate (1 is good for essential matrix, 0 is not)
+	public static int getLabelEssential(FinalizedData fd) {
+		return fd.totalReconstErrorEstEssential / fd.summary.numCorrespondences < 0.04
+				&& fd.transChordalEstEssential < 0.04 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences come from a pure
@@ -516,6 +544,11 @@ public class ModelTesting {
 
 				if (dataLines == null) {
 					keepGoing = false;
+					continue;
+				}
+
+				// ignore comment lines
+				if (dataLines.trim().charAt(0) == '#') {
 					continue;
 				}
 
