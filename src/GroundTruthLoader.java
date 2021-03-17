@@ -17,6 +17,7 @@ public class GroundTruthLoader {
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(datasetPath + "groundtruth.txt"));
 			String line = "";
+//			Utils.pl("groundtruth: ");
 			while (line != null) {
 				line = line.trim();
 				if (line.length() != 0 && line.charAt(0) != '#') {
@@ -30,6 +31,9 @@ public class GroundTruthLoader {
 					double qy = Double.parseDouble(tokens[5]);
 					double qz = Double.parseDouble(tokens[6]);
 					double qw = Double.parseDouble(tokens[7]);
+
+//					Utils.pl("tx: " + tx + ", ty: " + ty + ", tz: " + tz + ", qx: " + qx + ", qy: " + qy + ", qz: " + qz
+//							+ ", qw: " + qw);
 
 					Pose pose = new Pose();
 					pose.setQw(qw);

@@ -109,6 +109,14 @@ public class TUMAnalyzer {
 				Utils.pl("poseDiff: ");
 				poseDiff.getHomogeneousMatrix().print(15, 5);
 
+				Utils.pl("poseDiff radians: ");
+				Utils.pl("x: " + poseDiff.getRotX());
+				Utils.pl("y: " + poseDiff.getRotY());
+				Utils.pl("z: " + poseDiff.getRotZ());
+
+				Utils.pl("poseDiff quaternion: ");
+				poseDiff.getQuaternion().print(15, 10);
+
 			}
 
 		}

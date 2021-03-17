@@ -93,13 +93,17 @@ public class Utils {
 
 		// invert the initial pose quaternion
 		Matrix q0Inv = new Matrix(4, 1);
-		q0Inv.set(0, 0, pose0.getQw());
-		q0Inv.set(1, 0, -pose0.getQx());
-		q0Inv.set(2, 0, -pose0.getQy());
-		q0Inv.set(3, 0, -pose0.getQz());
+		q0Inv.set(0, 0, -pose0.getQw());
+		q0Inv.set(1, 0, pose0.getQx());
+		q0Inv.set(2, 0, pose0.getQy());
+		q0Inv.set(3, 0, pose0.getQz());
 
 		// calculate the new rotation difference from pose0 -> pose1
 		Matrix newQuat = quatMult(q1, q0Inv);
+		pl("q1: " + q1.get(0, 0) + ", " + q1.get(1, 0) + ", " + q1.get(2, 0) + ", " + q1.get(3, 0));
+		pl("q0Inv: " + q0Inv.get(0, 0) + ", " + q0Inv.get(1, 0) + ", " + q0Inv.get(2, 0) + ", " + q0Inv.get(3, 0));
+		pl("quatMult: " + newQuat.get(0, 0) + ", " + newQuat.get(1, 0) + ", " + newQuat.get(2, 0) + ", "
+				+ newQuat.get(3, 0));
 
 		// calculate absolute translation difference
 		double cx = pose1.getCx() - pose0.getCx();
