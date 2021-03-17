@@ -1,6 +1,11 @@
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.highgui.HighGui;
+import org.opencv.imgproc.Imgproc;
 
 import Jama.Matrix;
 
@@ -26,6 +31,7 @@ public class TUMAnalyzer {
 			List<FramePack> batch = new ArrayList<FramePack>();
 			for (int i = 0; i < batchSize && keepGoing; i++) {
 				FramePack fp = tumBuf.getNext();
+
 				if (fp == null) {
 					keepGoing = false;
 					continue;
@@ -50,18 +56,34 @@ public class TUMAnalyzer {
 			for (int j = 1; j < batches.get(i).size(); j++) {
 
 				// // // get orb features of frame and match them to first frame
-				ImageData imgData1 = new ImageData(batches.get(i).get(1).getRawFrame());
+				ImageData imgData1 = new ImageData(batches.get(i).get(j).getRawFrame());
 				imgData1.detectAndComputeORB();
 				List<Correspondence2D2D> correspondences = ImageData.matchDescriptors(imgData0.getKeypoints().toList(),
 						imgData0.getDescriptors(), imgData1.getKeypoints().toList(), imgData1.getDescriptors());
 
+				// visualize matches
+				Mat dest = imgData1.image.clone();
+				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_RGB2BGR);
+				for (Correspondence2D2D c : correspondences) {
+					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
+							new Scalar(0, 255, 0), 1);
+				}
+
+				HighGui.imshow("Frame", dest);
+				HighGui.waitKey(1);
+				Utils.pl("index in batch: " + j);
+				Utils.pl("num correspondences: " + correspondences.size());
+
 				// // // create poses for first and current frames, calculate true difference
 				Pose pose1 = poses.get(i * batchSize + j);
 				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
+				double baselineLength = Math.sqrt(
+						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
+				Utils.pl("calculated baseline length: " + baselineLength);
 
 				// // // get sample for correspondences
 				Sample sample = new Sample();
-				sample.evaluate(pose0, pose1, correspondences, cameraParams, new Matrix(3, 3), true);
+				sample.evaluate(new Pose(), poseDiff, correspondences, cameraParams, new Matrix(3, 3), true);
 
 				// // // create finalized data and add it to output string (with frame nums)
 				FinalizedData fd = new FinalizedData();
@@ -75,22 +97,34 @@ public class TUMAnalyzer {
 				fd.baseline = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
 
-				output += "# " + i + "," + j + "\n";
+				Utils.pl("avg reconstruction error: " + (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
+				Utils.pl("transChordalEstFun: " + fd.transChordalEstFun);
+
+				output += "# " + (i * batchSize) + "," + (j + i * batchSize) + "\n";
 				output += fd.stringify();
+
+				Utils.pl("calculated pose: ");
+				sample.poseEstFun.print(15, 5);
+
+				Utils.pl("poseDiff: ");
+				poseDiff.getHomogeneousMatrix().print(15, 5);
+
 			}
 
 		}
 
+//		Utils.pl(output);
 		// save output string
 		try {
 
-			FileWriter fw = new FileWriter(OUT_FILE);
-			fw.write(output);
-			fw.close();
+//			FileWriter fw = new FileWriter(OUT_FILE);
+//			fw.write(output);
+//			fw.close();
 
 		} catch (Exception e) {
 
 		}
+		Utils.pl("end of function.");
 	}
 
 }

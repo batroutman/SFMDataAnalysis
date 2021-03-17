@@ -34,9 +34,10 @@ public class SFMDataAnalysis {
 		System.out.println("Hello world!");
 //		test5();
 //		List<FinalizedData> data = loadData("results/data/train-1614974242961.dat");
-		ModelTesting.trainModelFromScratch("results/data/train-1615346519237-1615346519237.dat",
-				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
+//		ModelTesting.trainModelFromScratch("results/data/train-1615346519237-1615346519237.dat",
+//				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
 //		ModelTesting.generateTrainingData();
+		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
 	}
 
 	public static void test6() {

@@ -281,6 +281,8 @@ public class ComputerVision {
 
 	public static Matrix estimateFundamentalMatrix(List<Correspondence2D2D> correspondences) {
 
+		CameraParams params = new CameraParams();
+
 		// create point matrices
 		List<Point> points0 = new ArrayList<Point>();
 		List<Point> points1 = new ArrayList<Point>();
@@ -411,7 +413,7 @@ public class ComputerVision {
 			}
 			if (numSelected > 1) {
 				Utils.pl(
-						"UH OH! More than one pose passed acceptance criteria in fundamental matrix initialization! (Photogrammetry::SFMFundamentalMatrixEstimate()) ==> numSelected: "
+						"UH OH! More than one pose passed acceptance criteria in fundamental matrix initialization! (ComputerVision::getPoseFromEssentialMatrix()) ==> numSelected: "
 								+ numSelected);
 			}
 

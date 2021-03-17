@@ -19,9 +19,9 @@ import org.opencv.imgproc.Imgproc;
 public class ImageData {
 
 //	protected static ORB orb = ORB.create(1000, 2, 3, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
-	protected static ORB orb = ORB.create(1000, 1.2f, 8, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // default
+	protected static ORB orb = ORB.create(10000, 1.2f, 8, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // default
 
-	public static int MATCH_THRESHOLD = 15;
+	public static int MATCH_THRESHOLD = 20;
 
 	protected List<Mat> masks = new ArrayList<Mat>();
 
@@ -42,6 +42,7 @@ public class ImageData {
 
 	public void detectAndComputeORB() {
 		orb.detect(this.image, this.keypoints);
+		this.filterKeypoints();
 		orb.compute(this.image, this.keypoints, this.descriptors);
 	}
 
@@ -224,7 +225,7 @@ public class ImageData {
 	}
 
 	public void filterKeypoints() {
-		int numRetPoints = 300;
+		int numRetPoints = 1000;
 		float tolerance = 0.1f;
 		int cols = this.image.cols();
 		int rows = this.image.rows();
