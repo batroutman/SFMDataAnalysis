@@ -9,6 +9,7 @@ import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Size;
 import org.opencv.features2d.BFMatcher;
 import org.opencv.features2d.DescriptorMatcher;
@@ -19,7 +20,7 @@ import org.opencv.imgproc.Imgproc;
 public class ImageData {
 
 //	protected static ORB orb = ORB.create(1000, 2, 3, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
-	protected static ORB orb = ORB.create(10000, 1.2f, 8, 7, 0, 2, ORB.FAST_SCORE, 31, 20);
+	protected static ORB orb = ORB.create(5, 1.2f, 1, 7, 0, 2, ORB.FAST_SCORE, 31, 20);
 
 	public static int MATCH_THRESHOLD = 20;
 
@@ -42,13 +43,72 @@ public class ImageData {
 
 	public void detectAndComputeORB() {
 		orb.detect(this.image, this.keypoints);
-		this.filterKeypoints();
+
+		// print keypoints
+		List<KeyPoint> listKeypoints = this.keypoints.toList();
+		Utils.pl("keypoints: ");
+		for (int i = 0; i < listKeypoints.size(); i++) {
+			KeyPoint kp = listKeypoints.get(i);
+			Utils.pl("pt.x: " + kp.pt.x + ", pt.y: " + kp.pt.y + ", angle: " + kp.angle + ", octave: " + kp.octave
+					+ ", response: " + kp.response + ", size: " + kp.size);
+		}
 		orb.compute(this.image, this.keypoints, this.descriptors);
 	}
 
 	public void detectAndComputeHomogeneousORB() {
-		this.detectHomogeneousFeatures();
+
+		this.createDummyKeypoint();
+//		this.detectHomogeneousFeatures();
 		orb.compute(this.image, this.keypoints, this.descriptors);
+	}
+
+	public void createDummyKeypoint() {
+		// given this keypoint:
+		// x: 407, y: 210, angle: 159.65936, size: 31
+		// generate that keypoint and try to get a correct ICAngle for it
+		KeyPoint keyp = new KeyPoint();
+		keyp.pt = new Point();
+		keyp.pt.x = 407;
+		keyp.pt.y = 210;
+		keyp.octave = 0;
+		keyp.response = 205;
+		keyp.size = 31;
+		List<KeyPoint> listKeypoints = new ArrayList<KeyPoint>();
+		listKeypoints.add(keyp);
+
+		int[] patchSizes = { 31 };
+		HashMap<Integer, List<Integer>> u_max_map = this.getUMaxMap(patchSizes);
+		Utils.pl("step1(): " + this.image.step1());
+		byte[] imgBuffer = new byte[this.image.rows() * this.image.cols()];
+		this.image.get(0, 0, imgBuffer);
+
+		Utils.pl("u_max(31): ");
+		for (int i = 0; i < u_max_map.get(31).size(); i++) {
+			Utils.p(u_max_map.get(31).get(i) + ", ");
+		}
+		Utils.pl("");
+
+		long start = System.currentTimeMillis();
+		this.ICAngles(imgBuffer, this.image.cols(), this.image.rows(), listKeypoints, u_max_map);
+		long end = System.currentTimeMillis();
+		Utils.pl("ICAngle time: " + (end - start) + "ms");
+
+		this.keypoints.fromList(listKeypoints);
+
+		listKeypoints = this.keypoints.toList();
+		Utils.pl("keypoints after ICAngle: ");
+		for (int i = 0; i < listKeypoints.size(); i++) {
+			KeyPoint kp = listKeypoints.get(i);
+			Utils.pl("pt.x: " + kp.pt.x + ", pt.y: " + kp.pt.y + ", angle: " + kp.angle + ", octave: " + kp.octave
+					+ ", response: " + kp.response + ", size: " + kp.size);
+		}
+
+		Utils.pl("ROW MAJOR TEST:");
+		Utils.pl(this.image.get(113, 288)[0]);
+		Utils.pl(Byte.toUnsignedInt(imgBuffer[rowMajor(288, 113, this.image.cols())]));
+		Utils.pl("rowMajor: " + rowMajor(356, 209, this.image.cols()));
+		Utils.pl("this.image.cols(): " + this.image.cols());
+
 	}
 
 	public void detectHomogeneousFeatures() {
@@ -132,6 +192,23 @@ public class ImageData {
 
 	}
 
+	public void ICAngles2(byte[] imgBuffer, int imgWidth, int imgHeight, List<KeyPoint> keypoints,
+			HashMap<Integer, List<Integer>> u_max_map) {
+
+		// for each keypoint, calculate the intensity centroid angle
+		for (KeyPoint kp : keypoints) {
+
+			double m01 = 0;
+			double m10 = 0;
+			List<Integer> max = u_max_map.get(kp.size);
+
+			// develop moment values
+//			for (int i = 0; i < max.size())
+
+		}
+
+	}
+
 	// pass in the full sized image buffer, width of the image, keypoints (with
 	// corrected xy values and sizes)
 	public void ICAngles(byte[] imgBuffer, int imgWidth, int imgHeight, List<KeyPoint> pts,
@@ -166,9 +243,11 @@ public class ImageData {
 					int x = centerX + u;
 					int y = centerY + v;
 
-					int val_plus = x < 0 || y < 0 || x >= width || y >= height ? 0 : imgBuffer[rowMajor(x, y, width)];
+					int val_plus = x < 0 || y < 0 || x >= width || y >= height ? 0
+							: Byte.toUnsignedInt(imgBuffer[rowMajor(x, y, width)]);
 					y = centerY - v;
-					int val_minus = x < 0 || y < 0 || x >= width || y >= height ? 0 : imgBuffer[rowMajor(x, y, width)];
+					int val_minus = x < 0 || y < 0 || x >= width || y >= height ? 0
+							: Byte.toUnsignedInt(imgBuffer[rowMajor(x, y, width)]);
 
 					v_sum += (val_plus - val_minus);
 					m_10 += u * (val_plus + val_minus);

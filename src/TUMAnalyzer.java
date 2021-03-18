@@ -48,22 +48,24 @@ public class TUMAnalyzer {
 		// for each batch,
 		for (int i = 0; i < batches.size(); i++) {
 			// // get orb features of first frame
-			ImageData imgData0 = new ImageData(batches.get(i).get(0).getRawFrame());
-			imgData0.detectAndComputeORB();
+			ImageData imgData0 = new ImageData(batches.get(i).get(0).getProcessedFrame());
+//			imgData0.detectAndComputeORB();
+			imgData0.detectAndComputeHomogeneousORB();
 			Pose pose0 = poses.get(i * batchSize);
 
 			// // iterate through other frames
 			for (int j = 1; j < batches.get(i).size(); j++) {
 
 				// // // get orb features of frame and match them to first frame
-				ImageData imgData1 = new ImageData(batches.get(i).get(j).getRawFrame());
-				imgData1.detectAndComputeORB();
+				ImageData imgData1 = new ImageData(batches.get(i).get(j).getProcessedFrame());
+//				imgData1.detectAndComputeORB();
+				imgData1.detectAndComputeHomogeneousORB();
 				List<Correspondence2D2D> correspondences = ImageData.matchDescriptors(imgData0.getKeypoints().toList(),
 						imgData0.getDescriptors(), imgData1.getKeypoints().toList(), imgData1.getDescriptors());
 
 				// visualize matches
 				Mat dest = imgData1.image.clone();
-				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_RGB2BGR);
+//				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_RGB2BGR);
 				for (Correspondence2D2D c : correspondences) {
 					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
 							new Scalar(0, 255, 0), 1);
