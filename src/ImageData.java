@@ -19,10 +19,10 @@ import org.opencv.imgproc.Imgproc;
 
 public class ImageData {
 
-//	protected static ORB orb = ORB.create(1000, 2, 3, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
-	protected static ORB orb = ORB.create(5, 1.2f, 1, 7, 0, 2, ORB.FAST_SCORE, 31, 20);
+	protected static ORB orb = ORB.create(1000, 2, 1, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
+//	protected static ORB orb = ORB.create(5, 1.2f, 1, 7, 0, 2, ORB.FAST_SCORE, 31, 20);
 
-	public static int MATCH_THRESHOLD = 20;
+	public static int MATCH_THRESHOLD = 50;
 
 	protected List<Mat> masks = new ArrayList<Mat>();
 
@@ -57,7 +57,8 @@ public class ImageData {
 
 	public void detectAndComputeHomogeneousORB() {
 
-		this.createDummyKeypoint();
+//		this.createDummyKeypoint();
+		this.detectHomogeneousFeatures2();
 //		this.detectHomogeneousFeatures();
 		orb.compute(this.image, this.keypoints, this.descriptors);
 	}
@@ -68,8 +69,10 @@ public class ImageData {
 		// generate that keypoint and try to get a correct ICAngle for it
 		KeyPoint keyp = new KeyPoint();
 		keyp.pt = new Point();
-		keyp.pt.x = 407;
-		keyp.pt.y = 210;
+//		keyp.pt.x = 407;
+//		keyp.pt.y = 210;
+		keyp.pt.x = 307; // 16.149666
+		keyp.pt.y = 216;
 		keyp.octave = 0;
 		keyp.response = 205;
 		keyp.size = 31;
@@ -108,6 +111,100 @@ public class ImageData {
 		Utils.pl(Byte.toUnsignedInt(imgBuffer[rowMajor(288, 113, this.image.cols())]));
 		Utils.pl("rowMajor: " + rowMajor(356, 209, this.image.cols()));
 		Utils.pl("this.image.cols(): " + this.image.cols());
+
+	}
+
+	public void detectHomogeneousFeatures2() {
+
+		// downscale the image to extract FAST features with patch size 28
+//		Mat down28 = this.downScale(this.image);
+//		down28 = this.downScale(down28);
+
+		// prepare collection of features
+		List<KeyPoint> listKeypoints28 = new ArrayList<KeyPoint>();
+
+		// cut into cells
+		int NUM_CELLS_X = 10;
+		int NUM_CELLS_Y = 10;
+		int CELL_WIDTH = this.image.cols() / NUM_CELLS_X;
+		int CELL_HEIGHT = this.image.rows() / NUM_CELLS_Y;
+
+		// get FAST features for each cell
+		for (int cellX = 0; cellX < NUM_CELLS_X; cellX++) {
+			for (int cellY = 0; cellY < NUM_CELLS_Y; cellY++) {
+
+//				Utils.pl("cellX: " + cellX);
+//				Utils.pl("cellY: " + cellY);
+
+				// get subimage
+				int startX = cellX * CELL_WIDTH;
+				int startY = cellY * CELL_HEIGHT;
+				int endX = startX + CELL_WIDTH > this.image.cols() ? this.image.cols() : startX + CELL_WIDTH;
+				int endY = startY + CELL_HEIGHT > this.image.rows() ? this.image.rows() : startY + CELL_HEIGHT;
+
+//				Utils.pl("startX: " + startX);
+//				Utils.pl("endX: " + endX);
+//				Utils.pl("startY: " + startY);
+//				Utils.pl("endY: " + endY);
+
+				Mat subImage = this.image.rowRange(startY, endY).colRange(startX, endX);
+
+				// get FAST features in cell
+				int fastThresh = 20;
+				FastFeatureDetector fastDetector = FastFeatureDetector.create(fastThresh, true);
+				MatOfKeyPoint kpts = new MatOfKeyPoint();
+				fastDetector.detect(subImage, kpts);
+
+//				Utils.pl("num keypoints: " + kpts.rows());
+
+				// if not enough keys, accept lesser features
+				if (kpts.rows() <= 3) {
+					kpts = new MatOfKeyPoint();
+					fastThresh = 7;
+					fastDetector = FastFeatureDetector.create(fastThresh, true);
+					fastDetector.detect(subImage, kpts);
+//					Utils.pl("num keypoints (second attempt): " + kpts.rows());
+				}
+
+				// offset the keypoints
+				List<KeyPoint> listKpts = kpts.toList();
+				for (KeyPoint kpt : listKpts) {
+					kpt.pt.x += startX;
+					kpt.pt.y += startY;
+				}
+
+				listKeypoints28.addAll(listKpts);
+
+			}
+		}
+		Utils.pl("num keypoints: " + listKeypoints28.size());
+
+		// filtering
+		listKeypoints28.sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
+		List<KeyPoint> sscKeyPoints28 = ssc(listKeypoints28, 500, 0.1f, this.image.cols(), this.image.rows());
+
+		Utils.pl("num keypoints (filtered): " + sscKeyPoints28.size());
+
+		// scale keypoints up to match the full sized image
+		for (int i = 0; i < sscKeyPoints28.size(); i++) {
+			KeyPoint keypoint = sscKeyPoints28.get(i);
+			keypoint.size = 31;
+			keypoint.octave = 0;
+//			keypoint.pt.x *= 4;
+//			keypoint.pt.y *= 4;
+		}
+
+		int[] patchSizes = { 31 };
+		HashMap<Integer, List<Integer>> u_max_map = this.getUMaxMap(patchSizes);
+		byte[] imgBuffer = new byte[this.image.rows() * this.image.cols()];
+		this.image.get(0, 0, imgBuffer);
+
+		long start = System.currentTimeMillis();
+		this.ICAngles(imgBuffer, this.image.cols(), this.image.rows(), sscKeyPoints28, u_max_map);
+		long end = System.currentTimeMillis();
+		Utils.pl("ICAngle time: " + (end - start) + "ms");
+
+		this.keypoints.fromList(sscKeyPoints28);
 
 	}
 
@@ -510,6 +607,58 @@ public class ImageData {
 				correspondences.add(c);
 			}
 		}
+
+		return correspondences;
+
+	}
+
+	public static List<Correspondence2D2D> matchDescriptorsGuided(List<KeyPoint> referenceKeypoints,
+			Mat referenceDescriptors, List<KeyPoint> currentKeypoints, Mat currentDescriptors,
+			List<KeyPoint> lastLocations) {
+
+		int BOX_SIZE = 10;
+
+		List<Correspondence2D2D> correspondences = new ArrayList<Correspondence2D2D>();
+
+		DescriptorMatcher matcher = BFMatcher.create(Core.NORM_HAMMING, true);
+		MatOfDMatch matches = new MatOfDMatch();
+
+		// tries to find a match for each query (currentDescriptor) against the already
+		// existing train (referenceDescriptor) set
+		matcher.match(currentDescriptors, referenceDescriptors, matches);
+
+//		Utils.pl("referenceDescriptors.rows(): " + referenceDescriptors.rows());
+//		Utils.pl("currentDescriptors.rows(): " + currentDescriptors.rows());
+//		Utils.pl("matches.rows(): " + matches.rows());
+
+		List<DMatch> listMatches = matches.toList();
+		for (int i = 0; i < listMatches.size(); i++) {
+			DMatch dmatch = listMatches.get(i);
+//			Utils.pl("first match ==> distance: " + listMatches.get(i).distance + ", imgIdx: "
+//					+ listMatches.get(i).imgIdx + ", queryIdx: " + listMatches.get(i).queryIdx + ", trainIdx: "
+//					+ listMatches.get(i).trainIdx);
+			if (dmatch.distance < MATCH_THRESHOLD) {
+
+				// if new keypoint is not close enough to last location, discard
+				if (Math.abs(
+						lastLocations.get(dmatch.trainIdx).pt.x - currentKeypoints.get(dmatch.queryIdx).pt.x) > BOX_SIZE
+						|| Math.abs(lastLocations.get(dmatch.trainIdx).pt.y
+								- currentKeypoints.get(dmatch.queryIdx).pt.y) > BOX_SIZE) {
+					continue;
+				}
+				Correspondence2D2D c = new Correspondence2D2D();
+				c.setX0(referenceKeypoints.get(dmatch.trainIdx).pt.x);
+				c.setY0(referenceKeypoints.get(dmatch.trainIdx).pt.y);
+				c.setX1(currentKeypoints.get(dmatch.queryIdx).pt.x);
+				c.setY1(currentKeypoints.get(dmatch.queryIdx).pt.y);
+				correspondences.add(c);
+
+				// update last location
+				lastLocations.set(dmatch.trainIdx, currentKeypoints.get(dmatch.queryIdx));
+			}
+		}
+
+		// remove outliers by disparity
 
 		return correspondences;
 

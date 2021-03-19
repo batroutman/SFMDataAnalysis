@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -51,6 +52,9 @@ public class TUMAnalyzer {
 			ImageData imgData0 = new ImageData(batches.get(i).get(0).getProcessedFrame());
 //			imgData0.detectAndComputeORB();
 			imgData0.detectAndComputeHomogeneousORB();
+
+			List<KeyPoint> lastLocations = new ArrayList<KeyPoint>(imgData0.getKeypoints().toList());
+
 			Pose pose0 = poses.get(i * batchSize);
 
 			// // iterate through other frames
@@ -60,12 +64,15 @@ public class TUMAnalyzer {
 				ImageData imgData1 = new ImageData(batches.get(i).get(j).getProcessedFrame());
 //				imgData1.detectAndComputeORB();
 				imgData1.detectAndComputeHomogeneousORB();
-				List<Correspondence2D2D> correspondences = ImageData.matchDescriptors(imgData0.getKeypoints().toList(),
-						imgData0.getDescriptors(), imgData1.getKeypoints().toList(), imgData1.getDescriptors());
+
+				List<Correspondence2D2D> correspondences = ImageData.matchDescriptorsGuided(
+						imgData0.getKeypoints().toList(), imgData0.getDescriptors(), imgData1.getKeypoints().toList(),
+						imgData1.getDescriptors(), lastLocations);
 
 				// visualize matches
 				Mat dest = imgData1.image.clone();
-//				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_RGB2BGR);
+				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_GRAY2RGB);
+//				Features2d.drawKeypoints(dest, imgData1.getKeypoints(), dest, new Scalar(255, 0, 0));
 				for (Correspondence2D2D c : correspondences) {
 					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
 							new Scalar(0, 255, 0), 1);
