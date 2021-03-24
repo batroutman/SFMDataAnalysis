@@ -29,7 +29,7 @@ public class ImageData {
 //	protected static ORB orb = ORB.create(1000, 2, 1, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
 	protected static ORB orb = ORB.create(1000, SCALE_FACTOR, 8, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // default
 
-	public static int MATCH_THRESHOLD = 20;
+	public static int MATCH_THRESHOLD = 50;
 
 	protected List<Mat> masks = new ArrayList<Mat>();
 
@@ -188,15 +188,15 @@ public class ImageData {
 
 			allKeypoints.add(new ArrayList<KeyPoint>());
 
-			int minBorderX = EDGE_THRESHOLD - 3;
-			int minBorderY = minBorderX;
-			int maxBorderX = pyramid.get(level).cols() - EDGE_THRESHOLD + 3;
-			int maxBorderY = pyramid.get(level).rows() - EDGE_THRESHOLD + 3;
-
-//			int minBorderX = 0;
+//			int minBorderX = EDGE_THRESHOLD - 3;
 //			int minBorderY = minBorderX;
-//			int maxBorderX = pyramid.get(level).cols();
-//			int maxBorderY = pyramid.get(level).rows();
+//			int maxBorderX = pyramid.get(level).cols() - EDGE_THRESHOLD + 3;
+//			int maxBorderY = pyramid.get(level).rows() - EDGE_THRESHOLD + 3;
+
+			int minBorderX = 0;
+			int minBorderY = minBorderX;
+			int maxBorderX = pyramid.get(level).cols();
+			int maxBorderY = pyramid.get(level).rows();
 
 			float width = (maxBorderX - minBorderX);
 			float height = (maxBorderY - minBorderY);
@@ -250,11 +250,11 @@ public class ImageData {
 			}
 
 			// prune features
-			allKeypoints.get(level).sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
-			int numRetained = 20 + 20 * level;
-			List<KeyPoint> sscKeyPoints = ssc(allKeypoints.get(level), numRetained, 0.1f, pyramid.get(level).cols(),
-					pyramid.get(level).rows());
-			allKeypoints.set(level, sscKeyPoints);
+//			allKeypoints.get(level).sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
+//			int numRetained = 20 + 20 * level;
+//			List<KeyPoint> sscKeyPoints = ssc(allKeypoints.get(level), numRetained, 0.1f, pyramid.get(level).cols(),
+//					pyramid.get(level).rows());
+//			allKeypoints.set(level, sscKeyPoints);
 
 			int scaledPatchSize = (int) (PATCH_SIZE * Math.pow(SCALE_FACTOR, level));
 
@@ -290,12 +290,36 @@ public class ImageData {
 		}
 
 		// final feature pruning (across all levels)
-		keypts.sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
-		int numRetained = 500;
-		keypts = ssc(keypts, numRetained, 0.1f, pyramid.get(0).cols(), pyramid.get(0).rows());
+//		keypts.sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
+//		int numRetained = 500;
+//		keypts = ssc(keypts, numRetained, 0.1f, pyramid.get(0).cols(), pyramid.get(0).rows());
+
+		nonMaxSuppression(keypts, 10);
 
 		return keypts;
 
+	}
+
+	public void nonMaxSuppression(List<KeyPoint> sortedKeypoints, int blastRadius) {
+		for (int i = 0; i < sortedKeypoints.size() - 1; i++) {
+			KeyPoint kp1 = sortedKeypoints.get(i);
+			double x1 = kp1.pt.x;
+			double y1 = kp1.pt.y;
+
+			for (int j = i + 1; j < sortedKeypoints.size(); j++) {
+				KeyPoint kp2 = sortedKeypoints.get(j);
+				double x2 = kp2.pt.x;
+				double y2 = kp2.pt.y;
+				double dist = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+
+				// if too close to kp1, destroy the point
+				if (dist <= blastRadius) {
+					sortedKeypoints.remove(j);
+					j--;
+				}
+			}
+
+		}
 	}
 
 	public void computeOrientations(Mat img, List<KeyPoint> keypts, List<Integer> umax) {
