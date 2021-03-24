@@ -10,6 +10,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.features2d.BFMatcher;
 import org.opencv.features2d.DescriptorMatcher;
@@ -19,10 +20,16 @@ import org.opencv.imgproc.Imgproc;
 
 public class ImageData {
 
-	protected static ORB orb = ORB.create(1000, 2, 1, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
-//	protected static ORB orb = ORB.create(5, 1.2f, 1, 7, 0, 2, ORB.FAST_SCORE, 31, 20);
+	public static int EDGE_THRESHOLD = 31;
+	public static int PATCH_SIZE = 31;
+	public static float SCALE_FACTOR = 1.2f;
+	public static int iniFAST = 20;
+	public static int minFAST = 7;
 
-	public static int MATCH_THRESHOLD = 50;
+//	protected static ORB orb = ORB.create(1000, 2, 1, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // optimized for speed
+	protected static ORB orb = ORB.create(1000, SCALE_FACTOR, 8, 31, 0, 2, ORB.FAST_SCORE, 31, 20); // default
+
+	public static int MATCH_THRESHOLD = 20;
 
 	protected List<Mat> masks = new ArrayList<Mat>();
 
@@ -92,7 +99,7 @@ public class ImageData {
 		Utils.pl("");
 
 		long start = System.currentTimeMillis();
-		this.ICAngles(imgBuffer, this.image.cols(), this.image.rows(), listKeypoints, u_max_map);
+		this.ICAngles2(imgBuffer, this.image.cols(), this.image.rows(), listKeypoints, u_max_map.get(31));
 		long end = System.currentTimeMillis();
 		Utils.pl("ICAngle time: " + (end - start) + "ms");
 
@@ -116,96 +123,187 @@ public class ImageData {
 
 	public void detectHomogeneousFeatures2() {
 
-		// downscale the image to extract FAST features with patch size 28
-//		Mat down28 = this.downScale(this.image);
-//		down28 = this.downScale(down28);
+		// create pyramid
+		long start = System.currentTimeMillis();
+		List<Mat> pyramid = this.computePyramid(8, SCALE_FACTOR);
+		long end = System.currentTimeMillis();
+		Utils.pl("pyramid: " + (end - start) + "ms");
 
-		// prepare collection of features
-		List<KeyPoint> listKeypoints28 = new ArrayList<KeyPoint>();
+		List<KeyPoint> keypts = this.getHomogeneousKeypoints(pyramid);
+		this.keypoints.fromList(keypts);
 
-		// cut into cells
-		int NUM_CELLS_X = 10;
-		int NUM_CELLS_Y = 10;
-		int CELL_WIDTH = this.image.cols() / NUM_CELLS_X;
-		int CELL_HEIGHT = this.image.rows() / NUM_CELLS_Y;
+	}
 
-		// get FAST features for each cell
-		for (int cellX = 0; cellX < NUM_CELLS_X; cellX++) {
-			for (int cellY = 0; cellY < NUM_CELLS_Y; cellY++) {
+	public List<Mat> computePyramid(int numLayers, double scaleFactor) {
 
-//				Utils.pl("cellX: " + cellX);
-//				Utils.pl("cellY: " + cellY);
+		List<Mat> pyramid = new ArrayList<Mat>();
 
-				// get subimage
-				int startX = cellX * CELL_WIDTH;
-				int startY = cellY * CELL_HEIGHT;
-				int endX = startX + CELL_WIDTH > this.image.cols() ? this.image.cols() : startX + CELL_WIDTH;
-				int endY = startY + CELL_HEIGHT > this.image.rows() ? this.image.rows() : startY + CELL_HEIGHT;
+		// add layers to pyramid
+		double scale = 1;
+		double invScale = 1 / scale;
+		for (int level = 0; level < numLayers; level++) {
 
-//				Utils.pl("startX: " + startX);
-//				Utils.pl("endX: " + endX);
-//				Utils.pl("startY: " + startY);
-//				Utils.pl("endY: " + endY);
+			Size sz = new Size((int) (this.image.cols() * invScale), (int) (this.image.rows() * invScale));
+			Size wholeSize = new Size(sz.width + EDGE_THRESHOLD * 2, sz.height + EDGE_THRESHOLD * 2);
+			Mat temp = new Mat(wholeSize, this.image.type());
+			Mat result = new Mat(temp, new Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, (int) sz.width, (int) sz.height));
 
-				Mat subImage = this.image.rowRange(startY, endY).colRange(startX, endX);
-
-				// get FAST features in cell
-				int fastThresh = 20;
-				FastFeatureDetector fastDetector = FastFeatureDetector.create(fastThresh, true);
-				MatOfKeyPoint kpts = new MatOfKeyPoint();
-				fastDetector.detect(subImage, kpts);
-
-//				Utils.pl("num keypoints: " + kpts.rows());
-
-				// if not enough keys, accept lesser features
-				if (kpts.rows() <= 3) {
-					kpts = new MatOfKeyPoint();
-					fastThresh = 7;
-					fastDetector = FastFeatureDetector.create(fastThresh, true);
-					fastDetector.detect(subImage, kpts);
-//					Utils.pl("num keypoints (second attempt): " + kpts.rows());
-				}
-
-				// offset the keypoints
-				List<KeyPoint> listKpts = kpts.toList();
-				for (KeyPoint kpt : listKpts) {
-					kpt.pt.x += startX;
-					kpt.pt.y += startY;
-				}
-
-				listKeypoints28.addAll(listKpts);
-
+			if (level != 0) {
+				Imgproc.resize(pyramid.get(level - 1), result, sz, 0, 0, Imgproc.INTER_LINEAR);
+				Core.copyMakeBorder(result, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+						Core.BORDER_REFLECT_101 + Core.BORDER_ISOLATED);
+			} else {
+				Core.copyMakeBorder(this.image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+						Core.BORDER_REFLECT_101);
 			}
-		}
-		Utils.pl("num keypoints: " + listKeypoints28.size());
 
-		// filtering
-		listKeypoints28.sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
-		List<KeyPoint> sscKeyPoints28 = ssc(listKeypoints28, 500, 0.1f, this.image.cols(), this.image.rows());
+			pyramid.add(result);
 
-		Utils.pl("num keypoints (filtered): " + sscKeyPoints28.size());
+			scale *= scaleFactor;
+			invScale = 1 / scale;
 
-		// scale keypoints up to match the full sized image
-		for (int i = 0; i < sscKeyPoints28.size(); i++) {
-			KeyPoint keypoint = sscKeyPoints28.get(i);
-			keypoint.size = 31;
-			keypoint.octave = 0;
-//			keypoint.pt.x *= 4;
-//			keypoint.pt.y *= 4;
+//			HighGui.imshow("asdf", pyramid.get(level));
+////			HighGui.imshow("asdf", temp);
+//			HighGui.waitKey(100);
+//			HighGui.destroyAllWindows();
+
 		}
 
+		return pyramid;
+
+	}
+
+	// DISCLAIMER: this function is a direct adaptation of
+	// ORBextractor::ComputeKeyPointsOctTree from ORB-SLAM2
+	public List<KeyPoint> getHomogeneousKeypoints(List<Mat> pyramid) {
+
+		List<KeyPoint> keypts = new ArrayList<KeyPoint>();
+
+		List<List<KeyPoint>> allKeypoints = new ArrayList<List<KeyPoint>>();
+
+		// number of rows and column in the grid
+		int W = 30;
+
+		for (int level = 0; level < pyramid.size(); level++) {
+
+			allKeypoints.add(new ArrayList<KeyPoint>());
+
+			int minBorderX = EDGE_THRESHOLD - 3;
+			int minBorderY = minBorderX;
+			int maxBorderX = pyramid.get(level).cols() - EDGE_THRESHOLD + 3;
+			int maxBorderY = pyramid.get(level).rows() - EDGE_THRESHOLD + 3;
+
+//			int minBorderX = 0;
+//			int minBorderY = minBorderX;
+//			int maxBorderX = pyramid.get(level).cols();
+//			int maxBorderY = pyramid.get(level).rows();
+
+			float width = (maxBorderX - minBorderX);
+			float height = (maxBorderY - minBorderY);
+
+			int nCols = (int) width / W;
+			int nRows = (int) height / W;
+			int wCell = (int) Math.ceil(width / nCols);
+			int hCell = (int) Math.ceil(height / nRows);
+
+			// iterate through each cell
+			for (int i = 0; i < nRows; i++) {
+
+				int iniY = minBorderY + i * hCell;
+				int maxY = iniY + hCell + 6;
+
+				if (iniY >= maxBorderY - 3)
+					continue;
+				if (maxY > maxBorderY)
+					maxY = maxBorderY;
+
+				for (int j = 0; j < nCols; j++) {
+
+					int iniX = minBorderX + j * wCell;
+					int maxX = iniX + wCell + 6;
+					if (iniX >= maxBorderX - 6)
+						continue;
+					if (maxX > maxBorderX)
+						maxX = maxBorderX;
+
+					// get keypoints
+					MatOfKeyPoint cellKeypoints = new MatOfKeyPoint();
+					FastFeatureDetector fastDetector = FastFeatureDetector.create(iniFAST, true);
+					fastDetector.detect(pyramid.get(level).rowRange(iniY, maxY).colRange(iniX, maxX), cellKeypoints);
+
+					// if no features detected, lower FAST threshold
+					if (cellKeypoints.empty()) {
+						fastDetector = FastFeatureDetector.create(minFAST, true);
+						fastDetector.detect(pyramid.get(level).rowRange(iniY, maxY).colRange(iniX, maxX),
+								cellKeypoints);
+					}
+
+					// adjust point locations to map to the full layer
+					List<KeyPoint> listCellKeypoints = cellKeypoints.toList();
+					for (int kp = 0; kp < listCellKeypoints.size(); kp++) {
+						listCellKeypoints.get(kp).pt.x += j * wCell;
+						listCellKeypoints.get(kp).pt.y += i * hCell;
+						allKeypoints.get(level).add(listCellKeypoints.get(kp));
+					}
+
+				}
+			}
+
+			// prune features
+			allKeypoints.get(level).sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
+			int numRetained = 20 + 20 * level;
+			List<KeyPoint> sscKeyPoints = ssc(allKeypoints.get(level), numRetained, 0.1f, pyramid.get(level).cols(),
+					pyramid.get(level).rows());
+			allKeypoints.set(level, sscKeyPoints);
+
+			int scaledPatchSize = (int) (PATCH_SIZE * Math.pow(SCALE_FACTOR, level));
+
+			// Add border to coordinates and scale information
+			int nkps = allKeypoints.get(level).size();
+			for (int i = 0; i < nkps; i++) {
+				allKeypoints.get(level).get(i).pt.x += minBorderX;
+				allKeypoints.get(level).get(i).pt.y += minBorderY;
+				allKeypoints.get(level).get(i).octave = level;
+				allKeypoints.get(level).get(i).size = scaledPatchSize;
+			}
+
+		}
+
+		// compute orientations
 		int[] patchSizes = { 31 };
 		HashMap<Integer, List<Integer>> u_max_map = this.getUMaxMap(patchSizes);
-		byte[] imgBuffer = new byte[this.image.rows() * this.image.cols()];
-		this.image.get(0, 0, imgBuffer);
+		for (int level = 0; level < pyramid.size(); level++) {
+			this.computeOrientations(pyramid.get(level), allKeypoints.get(level), u_max_map.get(31));
+		}
 
-		long start = System.currentTimeMillis();
-		this.ICAngles(imgBuffer, this.image.cols(), this.image.rows(), sscKeyPoints28, u_max_map);
-		long end = System.currentTimeMillis();
-		Utils.pl("ICAngle time: " + (end - start) + "ms");
+		// scale up keypoints for descriptors
+		for (int level = 1; level < pyramid.size(); level++) {
+			for (int kp = 0; kp < allKeypoints.get(level).size(); kp++) {
+				allKeypoints.get(level).get(kp).pt.x *= Math.pow(SCALE_FACTOR, level);
+				allKeypoints.get(level).get(kp).pt.y *= Math.pow(SCALE_FACTOR, level);
+			}
+		}
 
-		this.keypoints.fromList(sscKeyPoints28);
+		// merge keypoint lists
+		for (int level = 0; level < pyramid.size(); level++) {
+			keypts.addAll(allKeypoints.get(level));
+		}
 
+		// final feature pruning (across all levels)
+		keypts.sort((kp1, kp2) -> (int) (kp2.response - kp1.response));
+		int numRetained = 500;
+		keypts = ssc(keypts, numRetained, 0.1f, pyramid.get(0).cols(), pyramid.get(0).rows());
+
+		return keypts;
+
+	}
+
+	public void computeOrientations(Mat img, List<KeyPoint> keypts, List<Integer> umax) {
+		byte[] imgBuffer = new byte[(img.cols() + 2 * EDGE_THRESHOLD) * (img.rows() + 2 * EDGE_THRESHOLD)];
+
+		img.get(-EDGE_THRESHOLD, -EDGE_THRESHOLD, imgBuffer);
+
+		ICAngles(imgBuffer, img.cols(), img.rows(), EDGE_THRESHOLD, keypts, umax);
 	}
 
 	public void detectHomogeneousFeatures() {
@@ -281,7 +379,7 @@ public class ImageData {
 		this.image.get(0, 0, imgBuffer);
 
 		long start = System.currentTimeMillis();
-		this.ICAngles(imgBuffer, this.image.cols(), this.image.rows(), sscKeyPoints28, u_max_map);
+		this.ICAngles2(imgBuffer, this.image.cols(), this.image.rows(), sscKeyPoints28, u_max_map.get(31));
 		long end = System.currentTimeMillis();
 		Utils.pl("ICAngle time: " + (end - start) + "ms");
 
@@ -289,34 +387,60 @@ public class ImageData {
 
 	}
 
-	public void ICAngles2(byte[] imgBuffer, int imgWidth, int imgHeight, List<KeyPoint> keypoints,
-			HashMap<Integer, List<Integer>> u_max_map) {
-
-		// for each keypoint, calculate the intensity centroid angle
-		for (KeyPoint kp : keypoints) {
-
-			double m01 = 0;
-			double m10 = 0;
-			List<Integer> max = u_max_map.get(kp.size);
-
-			// develop moment values
-//			for (int i = 0; i < max.size())
-
-		}
-
-	}
-
-	// pass in the full sized image buffer, width of the image, keypoints (with
-	// corrected xy values and sizes)
-	public void ICAngles(byte[] imgBuffer, int imgWidth, int imgHeight, List<KeyPoint> pts,
-			HashMap<Integer, List<Integer>> u_max_map) {
+	public void ICAngles(byte[] imgBuffer, int imgWidth, int imgHeight, int margin, List<KeyPoint> pts,
+			List<Integer> u_max) {
 		int ptidx, ptsize = pts.size();
 		int width = imgWidth;
 		int height = imgHeight;
 
 		for (ptidx = 0; ptidx < ptsize; ptidx++) {
 
-			List<Integer> u_max = u_max_map.get((int) pts.get(ptidx).size);
+//			int half_k = (int) (pts.get(ptidx).size / 2);
+			int half_k = PATCH_SIZE / 2;
+
+			int centerX = (int) pts.get(ptidx).pt.x;
+			int centerY = (int) pts.get(ptidx).pt.y;
+
+			int m_01 = 0, m_10 = 0;
+
+			// Treat the center line differently, v=0
+			for (int u = -half_k; u <= half_k; ++u) {
+				int x = u + centerX;
+				m_10 += x < 0 || x >= width ? 0
+						: u * imgBuffer[rowMajor(x + margin, centerY + margin, width + margin * 2)];
+			}
+
+			// Go line by line in the circular patch
+			for (int v = 1; v <= half_k; ++v) {
+				// Proceed over the two lines
+				int v_sum = 0;
+				int d = u_max.get(v);
+				for (int u = -d; u <= d; ++u) {
+					int x = centerX + u;
+					int y = centerY + v;
+
+					int val_plus = Byte.toUnsignedInt(imgBuffer[rowMajor(x + margin, y + margin, width + margin * 2)]);
+					y = centerY - v;
+					int val_minus = Byte.toUnsignedInt(imgBuffer[rowMajor(x + margin, y + margin, width + margin * 2)]);
+
+					v_sum += (val_plus - val_minus);
+					m_10 += u * (val_plus + val_minus);
+				}
+				m_01 += v * v_sum;
+			}
+
+			pts.get(ptidx).angle = (float) Core.fastAtan2((float) m_01, (float) m_10);
+		}
+	}
+
+	// pass in the full sized image buffer, width of the image, keypoints (with
+	// corrected xy values and sizes)
+	public void ICAngles2(byte[] imgBuffer, int imgWidth, int imgHeight, List<KeyPoint> pts, List<Integer> u_max) {
+		int ptidx, ptsize = pts.size();
+		int width = imgWidth;
+		int height = imgHeight;
+
+		for (ptidx = 0; ptidx < ptsize; ptidx++) {
 
 			int half_k = (int) (pts.get(ptidx).size / 2);
 

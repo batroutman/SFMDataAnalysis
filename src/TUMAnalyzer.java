@@ -5,6 +5,7 @@ import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.features2d.Features2d;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 
@@ -72,7 +73,7 @@ public class TUMAnalyzer {
 				// visualize matches
 				Mat dest = imgData1.image.clone();
 				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_GRAY2RGB);
-//				Features2d.drawKeypoints(dest, imgData1.getKeypoints(), dest, new Scalar(255, 0, 0));
+				Features2d.drawKeypoints(dest, imgData1.getKeypoints(), dest, new Scalar(255, 0, 0));
 				for (Correspondence2D2D c : correspondences) {
 					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
 							new Scalar(0, 255, 0), 1);
@@ -106,14 +107,15 @@ public class TUMAnalyzer {
 				fd.baseline = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
 
-				Utils.pl("avg reconstruction error: " + (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
-				Utils.pl("transChordalEstFun: " + fd.transChordalEstFun);
+				Utils.pl("avg reconstruction error: "
+						+ (fd.totalReconstErrorEstEssential / fd.summary.numCorrespondences));
+				Utils.pl("transChordalEstEssential: " + fd.transChordalEstEssential);
 
 				output += "# " + (i * batchSize) + "," + (j + i * batchSize) + "\n";
 				output += fd.stringify();
 
 				Utils.pl("calculated pose: ");
-				sample.poseEstFun.print(15, 5);
+				sample.poseEstEssential.print(15, 5);
 
 				Utils.pl("poseDiff: ");
 				poseDiff.getHomogeneousMatrix().print(15, 5);
