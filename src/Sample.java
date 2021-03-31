@@ -44,6 +44,9 @@ public class Sample {
 	// pose derived from homography
 	public Matrix poseEstHomography = null;
 
+	// debug cheirality poses from homgraphy
+	public List<Matrix> homCheiralityPoses = new ArrayList<Matrix>();
+
 	// pose derived from estimated essential matrix
 	public Matrix poseEstEssential = null;
 
@@ -177,7 +180,7 @@ public class Sample {
 				this.correspondences);
 		try {
 			this.poseEstHomography = ComputerVision.getPoseFromHomography(this.estimatedHomography, this.primaryCamera,
-					cameraParams, correspondences);
+					cameraParams, correspondences, homCheiralityPoses);
 		} catch (Exception e) {
 			Utils.pl("Homography estimation broke. Defaulting to identity.");
 			this.poseEstHomography = Matrix.identity(4, 4);

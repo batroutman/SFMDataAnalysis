@@ -37,7 +37,9 @@ public class SFMDataAnalysis {
 //		ModelTesting.trainModelFromScratch("results/data/train-1615346519237-1615346519237.dat",
 //				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
 //		ModelTesting.generateTrainingData();
-		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
+
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
+		test4();
 	}
 
 	public static void test6() {
@@ -134,7 +136,7 @@ public class SFMDataAnalysis {
 	// by charting them
 	public static void test4() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.generatePlanarScene(0, 1000);
+		mock.generateSphericalScene(0, 1000);
 
 		// initial secondary camera
 		double z = 0;
@@ -145,10 +147,12 @@ public class SFMDataAnalysis {
 		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
 
 		// ending params and motion params
-//		double endZ = -0.8;
-//		double endX = -0.707;
-		double endZ = 0;
-		double endX = 0;
+		double endZ = -0.8;
+		double endX = -0.707;
+//		double endZ = -0.1;
+//		double endX = -0.088375;
+//		double endZ = 0;
+//		double endX = 0;
 		double endRotY = -0.125;
 		int numIterations = 50;
 		double changeZ = (endZ - z) / numIterations;
@@ -161,6 +165,7 @@ public class SFMDataAnalysis {
 		double[] valueListFun = new double[numIterations];
 		double[] valueListHom = new double[numIterations];
 		double[] valueListEss = new double[numIterations];
+		double[] valueListTomono = new double[numIterations];
 
 		// deep learning training data
 		INDArray input = Nd4j.zeros(numIterations, 23);
@@ -178,7 +183,7 @@ public class SFMDataAnalysis {
 			indexList[i] = (double) Math
 					.round(mock.getSecondaryCamera().getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() * 1000)
 					/ 1000;
-			indexList[i] = i;
+//			indexList[i] = i;
 			Sample sample = new Sample();
 			sample.evaluate(mock);
 
@@ -197,8 +202,17 @@ public class SFMDataAnalysis {
 //			valueListHom[i] = sample.transChordalEstHomography;
 //			valueListEss[i] = sample.transChordalEstEssential;
 
-			sample.poseEstFun.print(10, 5);
+//			sample.poseEstHomography.print(10, 5);
+			Utils.pl("cheirality homography poses");
+			for (int j = 0; j < sample.homCheiralityPoses.size(); j++) {
+				sample.homCheiralityPoses.get(j).print(10, 5);
+			}
+			Utils.pl("true pose");
 			sample.secondaryCamera.getHomogeneousMatrix().print(10, 5);
+
+			double D = ComputerVision.getD(mock.getCorrespondences());
+			Utils.pl("D: " + D);
+			valueListTomono[i] = D;
 
 			samples.add(sample);
 
@@ -214,9 +228,8 @@ public class SFMDataAnalysis {
 		// Rescaled Average Reconstruction Error
 		// Normalized Translational Chordal Distance
 		final XYChart chart = new XYChartBuilder().width(600).height(400)
-				.title("Error Metric Over Baseline for Noisy Planar Scene (Pure Rotation)")
-				.xAxisTitle("Iteration (Higher = More Rotation)").yAxisTitle("Rescaled Average Reconstruction Error")
-				.build();
+				.title("Error Metric Over Baseline for High Parallax Scene").xAxisTitle("Baseline")
+				.yAxisTitle("Rescaled Average Reconstruction Error").build();
 
 		// Customize Chart
 		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
@@ -225,6 +238,7 @@ public class SFMDataAnalysis {
 		chart.addSeries("Fundamental Matrix Estimate (7PA)", indexList, valueListFun);
 		chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
 		chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
+		chart.addSeries("Tomono score", indexList, valueListTomono);
 
 		// Show it
 		new SwingWrapper(chart).displayChart();

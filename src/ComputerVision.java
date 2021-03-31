@@ -12,10 +12,68 @@ import Jama.SingularValueDecomposition;
 
 public class ComputerVision {
 
+	// Tomono method
+	public static double getD(List<Correspondence2D2D> correspondences) {
+
+		List<Correspondence2D2D> normCorr = normalizeCorrespondences(correspondences);
+		long start = System.currentTimeMillis();
+		Matrix A = new Matrix(normCorr.size(), 9);
+		for (int i = 0; i < normCorr.size(); i++) {
+			Correspondence2D2D c = normCorr.get(i);
+			double u1 = c.getX0();
+			double uk = c.getX1();
+			double v1 = c.getY0();
+			double vk = c.getY1();
+
+			A.set(i, 0, u1 * uk);
+			A.set(i, 1, u1 * vk);
+			A.set(i, 2, u1);
+			A.set(i, 3, v1 * uk);
+			A.set(i, 4, v1 * vk);
+			A.set(i, 5, v1);
+			A.set(i, 6, uk);
+			A.set(i, 7, vk);
+			A.set(i, 8, 1);
+
+		}
+
+		SingularValueDecomposition svd = A.svd();
+		long end = System.currentTimeMillis();
+		Utils.pl("tomono time: " + (end - start) + "ms");
+		Utils.pl("svd S");
+		svd.getS().print(10, 5);
+
+		double s7 = svd.getS().get(6, 6);
+		double s8 = svd.getS().get(7, 7);
+		double D = Math.sqrt(s7 * s8);
+
+		return D;
+
+	}
+
+	public static List<Correspondence2D2D> normalizeCorrespondences(List<Correspondence2D2D> correspondences) {
+		List<Correspondence2D2D> normCorr = new ArrayList<Correspondence2D2D>();
+		CameraParams cameraParams = new CameraParams();
+
+		for (int i = 0; i < correspondences.size(); i++) {
+			Correspondence2D2D c = correspondences.get(i);
+			Correspondence2D2D normC = new Correspondence2D2D();
+			normC.setX0(c.getX0() / cameraParams.width);
+			normC.setX1(c.getX1() / cameraParams.width);
+			normC.setY0(c.getY0() / cameraParams.height);
+			normC.setY1(c.getY1() / cameraParams.height);
+			normCorr.add(normC);
+		}
+
+		return normCorr;
+	}
+
 	public static Mat estimateHomography(List<Correspondence2D2D> correspondences) {
 
 		ArrayList<Point> matchedKeyframePoints = new ArrayList<Point>();
 		ArrayList<Point> matchedPoints = new ArrayList<Point>();
+
+//		List<Correspondence2D2D> normCorr = normalizeCorrespondences(correspondences);
 
 		for (int i = 0; i < correspondences.size(); i++) {
 			Correspondence2D2D c = correspondences.get(i);
@@ -42,6 +100,11 @@ public class ComputerVision {
 
 	public static Matrix getPoseFromHomography(Mat homography, Pose primaryCamera, CameraParams cameraParams,
 			List<Correspondence2D2D> correspondences) {
+		return getPoseFromHomography(homography, primaryCamera, cameraParams, correspondences, new ArrayList<Matrix>());
+	}
+
+	public static Matrix getPoseFromHomography(Mat homography, Pose primaryCamera, CameraParams cameraParams,
+			List<Correspondence2D2D> correspondences, List<Matrix> cheiralityPoses) {
 
 		Mat intrinsics = cameraParams.getKMat();
 		List<Mat> rotations = new ArrayList<Mat>();
@@ -49,12 +112,20 @@ public class ComputerVision {
 		List<Mat> normals = new ArrayList<Mat>();
 		Calib3d.decomposeHomographyMat(homography, intrinsics, rotations, translations, normals);
 
-		Matrix E = selectHomographySolution(primaryCamera, cameraParams, rotations, translations, correspondences);
+		Matrix E = selectHomographySolution(primaryCamera, cameraParams, rotations, translations, correspondences,
+				cheiralityPoses);
 		return E;
 	}
 
 	public static Matrix selectHomographySolution(Pose primaryCamera, CameraParams cameraParams, List<Mat> rotations,
 			List<Mat> translations, List<Correspondence2D2D> correspondences) {
+		return selectHomographySolution(primaryCamera, cameraParams, rotations, translations, correspondences,
+				new ArrayList<Matrix>());
+	}
+
+	public static Matrix selectHomographySolution(Pose primaryCamera, CameraParams cameraParams, List<Mat> rotations,
+			List<Mat> translations, List<Correspondence2D2D> correspondences, List<Matrix> cheiralityPoses) {
+		cheiralityPoses.clear();
 
 //		Utils.pl("rotations: ");
 //		for (int i = 0; i < rotations.size(); i++) {
@@ -155,6 +226,12 @@ public class ComputerVision {
 		E4.set(1, 3, t4.get(1, 0));
 		E4.set(2, 3, t4.get(2, 0));
 
+		List<Matrix> poses = new ArrayList<Matrix>();
+		poses.add(E1);
+		poses.add(E2);
+		poses.add(E3);
+		poses.add(E4);
+
 		int[] scores = { 0, 0, 0, 0 };
 		double[] reprojErrors = { 0, 0, 0, 0 };
 
@@ -216,7 +293,7 @@ public class ComputerVision {
 
 //		Utils.pl("scores:   " + scores[0] + ", " + scores[1] + ", " + scores[2] + ", " + scores[3]);
 
-		// narrow down options based on chirality (should have 2 hypotheses
+		// narrow down options based on cheirality (should have 2 hypotheses
 		// remaining)
 		ArrayList<Integer> bestHypothesesInd = new ArrayList<Integer>();
 		double avgScore = (scores[0] + scores[1] + scores[2] + scores[3]) / 4.0;
@@ -225,6 +302,7 @@ public class ComputerVision {
 			int score = scores[i];
 			if (score > avgScore) {
 				bestHypothesesInd.add(i);
+				cheiralityPoses.add(poses.get(i));
 			}
 		}
 

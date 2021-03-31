@@ -44,6 +44,12 @@ public class CameraParams {
 		return K;
 	}
 
+	public Mat getNormKMat() {
+		Mat K = new Mat(3, 3, CvType.CV_64FC1);
+		K.put(0, 0, fx / width, s, cx / width, 0, fy / height, cy / height, 0, 0, 1);
+		return K;
+	}
+
 	public float getFx() {
 		return fx;
 	}
