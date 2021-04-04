@@ -39,7 +39,8 @@ public class SFMDataAnalysis {
 //		ModelTesting.generateTrainingData();
 
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
-		test4();
+//		test4();
+		Tests.testOpticalFlow();
 	}
 
 	public static void test6() {
