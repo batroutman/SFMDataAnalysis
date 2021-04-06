@@ -38,9 +38,9 @@ public class SFMDataAnalysis {
 //				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
 //		ModelTesting.generateTrainingData();
 
-//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
+		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
 //		test4();
-		Tests.testOpticalFlow();
+//		Tests.testOpticalFlow();
 	}
 
 	public static void test6() {

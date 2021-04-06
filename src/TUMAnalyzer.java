@@ -3,6 +3,8 @@ import java.util.List;
 
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.features2d.Features2d;
@@ -51,29 +53,39 @@ public class TUMAnalyzer {
 		for (int i = 0; i < batches.size(); i++) {
 			// // get orb features of first frame
 			ImageData imgData0 = new ImageData(batches.get(i).get(0).getProcessedFrame());
-//			imgData0.detectAndComputeORB();
-			imgData0.detectAndComputeHomogeneousORB();
-
-			List<KeyPoint> lastLocations = new ArrayList<KeyPoint>(imgData0.getKeypoints().toList());
+			MatOfPoint2f pInitial = imgData0.GFTT(1000);
+			MatOfPoint2f pPrev = new MatOfPoint2f(pInitial);
+			Mat prevFrame = imgData0.getImage();
 
 			Pose pose0 = poses.get(i * batchSize);
 
 			// // iterate through other frames
 			for (int j = 1; j < batches.get(i).size(); j++) {
 
+				Utils.pl("\n\nFrame #" + (i * batchSize + j) + "\n\n");
+
 				// // // get orb features of frame and match them to first frame
 				ImageData imgData1 = new ImageData(batches.get(i).get(j).getProcessedFrame());
-//				imgData1.detectAndComputeORB();
-				imgData1.detectAndComputeHomogeneousORB();
+				MatOfPoint2f pCurrent = new MatOfPoint2f();
 
-				List<Correspondence2D2D> correspondences = ImageData.matchDescriptorsGuided(
-						imgData0.getKeypoints().toList(), imgData0.getDescriptors(), imgData1.getKeypoints().toList(),
-						imgData1.getDescriptors(), lastLocations);
+				List<Correspondence2D2D> correspondences = imgData1.calcOpticalFlow(prevFrame, pInitial, pPrev,
+						pCurrent);
+
+				// create MatOfKeyPoint
+				List<KeyPoint> listKeypoints = new ArrayList<KeyPoint>();
+				for (Correspondence2D2D c : correspondences) {
+					KeyPoint kp = new KeyPoint();
+					Point pt = new Point(c.getX1(), c.getY1());
+					kp.pt = pt;
+					listKeypoints.add(kp);
+				}
+				MatOfKeyPoint keypoints = new MatOfKeyPoint();
+				keypoints.fromList(listKeypoints);
 
 				// visualize matches
 				Mat dest = imgData1.image.clone();
 				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_GRAY2RGB);
-				Features2d.drawKeypoints(dest, imgData1.getKeypoints(), dest, new Scalar(255, 0, 0));
+				Features2d.drawKeypoints(dest, keypoints, dest, new Scalar(255, 0, 0));
 				for (Correspondence2D2D c : correspondences) {
 					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
 							new Scalar(0, 255, 0), 1);
@@ -83,6 +95,10 @@ public class TUMAnalyzer {
 				HighGui.waitKey(1);
 				Utils.pl("index in batch: " + j);
 				Utils.pl("num correspondences: " + correspondences.size());
+
+				// update keypoints
+				prevFrame = imgData1.getImage();
+				pPrev = pCurrent;
 
 				// // // create poses for first and current frames, calculate true difference
 				Pose pose1 = poses.get(i * batchSize + j);
@@ -107,26 +123,25 @@ public class TUMAnalyzer {
 				fd.baseline = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
 
-				Utils.pl("avg reconstruction error: "
-						+ (fd.totalReconstErrorEstEssential / fd.summary.numCorrespondences));
-				Utils.pl("transChordalEstEssential: " + fd.transChordalEstEssential);
+				Utils.pl("avg reconstruction error: " + (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
+				Utils.pl("transChordalEstFun: " + fd.transChordalEstFun);
 
 				output += "# " + (i * batchSize) + "," + (j + i * batchSize) + "\n";
 				output += fd.stringify();
 
-				Utils.pl("calculated pose: ");
-				sample.poseEstEssential.print(15, 5);
-
-				Utils.pl("poseDiff: ");
-				poseDiff.getHomogeneousMatrix().print(15, 5);
-
-				Utils.pl("poseDiff radians: ");
-				Utils.pl("x: " + poseDiff.getRotX());
-				Utils.pl("y: " + poseDiff.getRotY());
-				Utils.pl("z: " + poseDiff.getRotZ());
-
-				Utils.pl("poseDiff quaternion: ");
-				poseDiff.getQuaternion().print(15, 10);
+//				Utils.pl("calculated pose: ");
+//				sample.poseEstEssential.print(15, 5);
+//
+//				Utils.pl("poseDiff: ");
+//				poseDiff.getHomogeneousMatrix().print(15, 5);
+//
+//				Utils.pl("poseDiff radians: ");
+//				Utils.pl("x: " + poseDiff.getRotX());
+//				Utils.pl("y: " + poseDiff.getRotY());
+//				Utils.pl("z: " + poseDiff.getRotZ());
+//
+//				Utils.pl("poseDiff quaternion: ");
+//				poseDiff.getQuaternion().print(15, 10);
 
 			}
 

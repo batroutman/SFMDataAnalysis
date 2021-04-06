@@ -7,16 +7,22 @@ import org.opencv.core.Core;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
+import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Size;
+import org.opencv.core.TermCriteria;
 import org.opencv.features2d.BFMatcher;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FastFeatureDetector;
 import org.opencv.features2d.ORB;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.video.Video;
 
 public class ImageData {
 
@@ -722,6 +728,74 @@ public class ImageData {
 				buffer[this.image.cols() * y + x] = (byte) 255;
 			}
 		}
+	}
+
+	public MatOfPoint2f GFTT(int NUM_FEATURES) {
+		MatOfPoint p0MatofPoint = new MatOfPoint();
+		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.01, 15, new Mat(), 7, false, 0.04);
+		MatOfPoint2f p0 = new MatOfPoint2f(p0MatofPoint.toArray());
+		return p0;
+	}
+
+	public List<Correspondence2D2D> calcOpticalFlow(Mat prevFrame, MatOfPoint2f pInitial, MatOfPoint2f pPrev,
+			MatOfPoint2f pCurrent) {
+
+		Mat old_gray = prevFrame;
+
+		Mat frame_gray = this.image;
+
+		// calculate optical flow
+		MatOfByte status = new MatOfByte();
+		MatOfFloat err = new MatOfFloat();
+		TermCriteria criteria = new TermCriteria(TermCriteria.COUNT + TermCriteria.EPS, 10, 0.03);
+		long start = System.currentTimeMillis();
+		Video.calcOpticalFlowPyrLK(old_gray, frame_gray, pPrev, pCurrent, status, err, new Size(30, 30), 2, criteria);
+		long end = System.currentTimeMillis();
+		Utils.pl("optical flow search time: " + (end - start) + "ms");
+		byte StatusArr[] = status.toArray();
+		Point pInitialArr[] = pInitial.toArray();
+		Point pPrevArr[] = pPrev.toArray();
+		Point pCurrentArr[] = pCurrent.toArray();
+
+		// set up lists to filter out failed matches
+		List<Point> goodPInitial = new ArrayList<Point>();
+		List<Point> goodPPrev = new ArrayList<Point>();
+		List<Point> goodPCurrent = new ArrayList<Point>();
+
+		List<Correspondence2D2D> correspondences = new ArrayList<Correspondence2D2D>();
+		for (int i = 0; i < StatusArr.length; i++) {
+
+			// if match was found, generate correspondence and pass points along to updated
+			// lists
+			if (StatusArr[i] == 1) {
+				Correspondence2D2D c = new Correspondence2D2D();
+				c.setX0(pInitialArr[i].x);
+				c.setY0(pInitialArr[i].y);
+				c.setX1(pCurrentArr[i].x);
+				c.setY1(pCurrentArr[i].y);
+				correspondences.add(c);
+
+				goodPInitial.add(pInitialArr[i]);
+				goodPPrev.add(pPrevArr[i]);
+				goodPCurrent.add(pCurrentArr[i]);
+
+			}
+		}
+
+		// Now update the previous frame and previous points
+		Point[] goodPInitialArr = new Point[goodPInitial.size()];
+		Point[] goodPPrevArr = new Point[goodPPrev.size()];
+		Point[] goodPCurrentArr = new Point[goodPCurrent.size()];
+		goodPInitial.toArray(goodPInitialArr);
+		goodPPrev.toArray(goodPPrevArr);
+		goodPCurrent.toArray(goodPCurrentArr);
+
+		// update the feature point matrices
+		pInitial.fromArray(goodPInitialArr);
+		pPrev.fromArray(goodPPrevArr);
+		pCurrent.fromArray(goodPCurrentArr);
+
+		return correspondences;
 	}
 
 	public static List<Correspondence2D2D> matchDescriptors(List<KeyPoint> referenceKeypoints, Mat referenceDescriptors,
