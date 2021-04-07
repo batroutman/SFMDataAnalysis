@@ -8,6 +8,11 @@ public class FinalizedData {
 	public double totalReconstErrorEstHomography = 0;
 	public double totalReconstErrorEstEssential = 0;
 
+	// total reconstruction errors
+	public double medianReconstErrorEstFun = 0;
+	public double medianReconstErrorEstHomography = 0;
+	public double medianReconstErrorEstEssential = 0;
+
 	// normalized translational chordal distances
 	public double transChordalEstFun = 0;
 	public double transChordalEstHomography = 0;
@@ -24,8 +29,10 @@ public class FinalizedData {
 		String output = this.summary.stringify();
 
 		output += this.totalReconstErrorEstFun + "," + this.totalReconstErrorEstHomography + ","
-				+ this.totalReconstErrorEstEssential + "," + this.transChordalEstFun + ","
-				+ this.transChordalEstHomography + "," + this.transChordalEstEssential + "," + this.baseline + "\n";
+				+ this.totalReconstErrorEstEssential + "," + this.medianReconstErrorEstFun + ","
+				+ this.medianReconstErrorEstHomography + "," + this.medianReconstErrorEstEssential + ","
+				+ this.transChordalEstFun + "," + this.transChordalEstHomography + "," + this.transChordalEstEssential
+				+ "," + this.baseline + "\n";
 
 		return output;
 	}
@@ -39,10 +46,13 @@ public class FinalizedData {
 		fd.totalReconstErrorEstFun = Double.parseDouble(errors[0]);
 		fd.totalReconstErrorEstHomography = Double.parseDouble(errors[1]);
 		fd.totalReconstErrorEstEssential = Double.parseDouble(errors[2]);
-		fd.transChordalEstFun = Double.parseDouble(errors[3]);
-		fd.transChordalEstHomography = Double.parseDouble(errors[4]);
-		fd.transChordalEstEssential = Double.parseDouble(errors[5]);
-		fd.baseline = Double.parseDouble(errors[6]);
+		fd.medianReconstErrorEstFun = Double.parseDouble(errors[3]);
+		fd.medianReconstErrorEstHomography = Double.parseDouble(errors[4]);
+		fd.medianReconstErrorEstEssential = Double.parseDouble(errors[5]);
+		fd.transChordalEstFun = Double.parseDouble(errors[6]);
+		fd.transChordalEstHomography = Double.parseDouble(errors[7]);
+		fd.transChordalEstEssential = Double.parseDouble(errors[8]);
+		fd.baseline = Double.parseDouble(errors[9]);
 
 		return fd;
 	}

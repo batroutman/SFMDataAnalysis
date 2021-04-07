@@ -71,21 +71,37 @@ public class TUMAnalyzer {
 				List<Correspondence2D2D> correspondences = imgData1.calcOpticalFlow(prevFrame, pInitial, pPrev,
 						pCurrent);
 
-				// create MatOfKeyPoint
-				List<KeyPoint> listKeypoints = new ArrayList<KeyPoint>();
+				// create MatOfKeyPoints
+				List<KeyPoint> listKeypointsNew = new ArrayList<KeyPoint>();
+				List<KeyPoint> listKeypointsOld = new ArrayList<KeyPoint>();
 				for (Correspondence2D2D c : correspondences) {
-					KeyPoint kp = new KeyPoint();
-					Point pt = new Point(c.getX1(), c.getY1());
-					kp.pt = pt;
-					listKeypoints.add(kp);
+					KeyPoint kpNew = new KeyPoint();
+					Point ptNew = new Point(c.getX1(), c.getY1());
+					kpNew.pt = ptNew;
+					listKeypointsNew.add(kpNew);
+
+					KeyPoint kpOld = new KeyPoint();
+					Point ptOld = new Point(c.getX0(), c.getY0());
+					kpOld.pt = ptOld;
+					listKeypointsOld.add(kpOld);
 				}
-				MatOfKeyPoint keypoints = new MatOfKeyPoint();
-				keypoints.fromList(listKeypoints);
+				MatOfKeyPoint keypointsNew = new MatOfKeyPoint();
+				MatOfKeyPoint keypointsOld = new MatOfKeyPoint();
+				keypointsNew.fromList(listKeypointsNew);
+				keypointsOld.fromList(listKeypointsOld);
 
 				// visualize matches
 				Mat dest = imgData1.image.clone();
 				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_GRAY2RGB);
-				Features2d.drawKeypoints(dest, keypoints, dest, new Scalar(255, 0, 0));
+
+				// black out image
+//				Imgproc.rectangle(dest, new Point(0, 0), new Point(639, 479), new Scalar(0, 0, 0), -1);
+
+				// draw keypoints
+//				Features2d.drawKeypoints(dest, keypointsOld, dest, new Scalar(255, 0, 0));
+				Features2d.drawKeypoints(dest, keypointsNew, dest, new Scalar(255, 0, 255));
+
+				// draw correspondence lines
 				for (Correspondence2D2D c : correspondences) {
 					Imgproc.line(dest, new Point(c.getX0(), c.getY0()), new Point(c.getX1(), c.getY1()),
 							new Scalar(0, 255, 0), 1);
@@ -103,6 +119,8 @@ public class TUMAnalyzer {
 				// // // create poses for first and current frames, calculate true difference
 				Pose pose1 = poses.get(i * batchSize + j);
 				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
+				Utils.pl("poseDiff:");
+				poseDiff.getHomogeneousMatrix().print(10, 5);
 				double baselineLength = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
 				Utils.pl("calculated baseline length: " + baselineLength);
@@ -117,14 +135,33 @@ public class TUMAnalyzer {
 				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
 				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
 				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.medianReconstErrorEstFun = sample.medianReconstErrorEstFun;
+				fd.medianReconstErrorEstHomography = sample.medianReconstErrorEstHomography;
+				fd.medianReconstErrorEstEssential = sample.medianReconstErrorEstEssential;
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;
 				fd.baseline = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
 
-				Utils.pl("avg reconstruction error: " + (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
+				Utils.pl("fun mat pose estimate: ");
+				sample.poseEstFun.print(10, 5);
+
+				Utils.pl("avg reconstruction error (fundamental): "
+						+ (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
+				Utils.pl("median reconstruction error (fundamental): " + fd.medianReconstErrorEstFun);
 				Utils.pl("transChordalEstFun: " + fd.transChordalEstFun);
+				Utils.pl("");
+				Utils.pl("avg reconstruction error (essential): "
+						+ (fd.totalReconstErrorEstEssential / fd.summary.numCorrespondences));
+				Utils.pl("median reconstruction error (essential): " + fd.medianReconstErrorEstEssential);
+				Utils.pl("transChordalEstEssential: " + fd.transChordalEstEssential);
+				Utils.pl("");
+				Utils.pl("avg reconstruction error (homography): "
+						+ (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences));
+				Utils.pl("median reconstruction error (homography): " + fd.medianReconstErrorEstHomography);
+				Utils.pl("transChordalEstHomography: " + fd.transChordalEstHomography);
+				Utils.pl("");
 
 				output += "# " + (i * batchSize) + "," + (j + i * batchSize) + "\n";
 				output += fd.stringify();

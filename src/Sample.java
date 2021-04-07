@@ -76,22 +76,27 @@ public class Sample {
 	// sum of euclidean distances between true 3D points and true triangulated
 	// points
 	double totalReconstErrorTrue = 0;
+	double medianReconstErrorTrue = 0;
 
 	// sum of euclidean distances between true 3D points and true fundamental matrix
 	// triangulated points
 	double totalReconstErrorTrueFun = 0;
+	double medianReconstErrorTrueFun = 0;
 
 	// sum of euclidean distances between true 3D points and estimated fundamental
 	// matrix triangulated points
 	double totalReconstErrorEstFun = 0;
+	double medianReconstErrorEstFun = 0;
 
 	// sum of euclidean distances between true 3D points and estimated homography
 	// triangulated points
 	double totalReconstErrorEstHomography = 0;
+	double medianReconstErrorEstHomography = 0;
 
 	// sum of euclidean distances between true 3D points and estimated essential
 	// matrix triangulated points
 	double totalReconstErrorEstEssential = 0;
+	double medianReconstErrorEstEssential = 0;
 
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////////////// REPROJECTION ERRORS ////////////////////////////////
@@ -202,13 +207,22 @@ public class Sample {
 				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 
 		// reconstruction errors
-		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints);
-		this.totalReconstErrorTrueFun = ComputerVision.totalReconstructionError(this.estPointsTrueFun, this.truePoints);
-		this.totalReconstErrorEstFun = ComputerVision.totalReconstructionError(this.estPointsEstFun, this.truePoints);
+		DoubleWrapper medianWrapper = new DoubleWrapper();
+		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorTrue = medianWrapper.value;
+		this.totalReconstErrorTrueFun = ComputerVision.totalReconstructionError(this.estPointsTrueFun, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorTrueFun = medianWrapper.value;
+		this.totalReconstErrorEstFun = ComputerVision.totalReconstructionError(this.estPointsEstFun, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorEstFun = medianWrapper.value;
 		this.totalReconstErrorEstHomography = ComputerVision.totalReconstructionError(this.estPointsEstHomography,
-				this.truePoints);
+				this.truePoints, medianWrapper);
+		this.medianReconstErrorEstHomography = medianWrapper.value;
 		this.totalReconstErrorEstEssential = ComputerVision.totalReconstructionError(this.estPointsEstEssential,
-				this.truePoints);
+				this.truePoints, medianWrapper);
+		this.medianReconstErrorEstEssential = medianWrapper.value;
 
 		// reprojection errors
 		this.totalReprojErrorTrue = ComputerVision.getTotalReprojectionError(
@@ -430,9 +444,15 @@ public class Sample {
 		output += "\n";
 
 		// total reconstruction errors
-		// (totalReprojErrorTrue,totalReprojErrorTrueFun,totalReprojErrorEstFun,totalReprojErrorEstHomography)
+		// (totalReconstErrorTrue,totalReconstErrorTrueFun,totalReconstErrorEstFun,totalReconstErrorEstHomography)
 		output += this.totalReconstErrorTrue + "," + this.totalReconstErrorTrueFun + "," + this.totalReconstErrorEstFun
 				+ "," + this.totalReconstErrorEstHomography + "," + this.totalReconstErrorEstEssential + "\n";
+
+		// median reconstruction errors
+		// (medianReconstErrorTrue,medianReconstErrorTrueFun,medianReconstErrorEstFun,medianReconstErrorEstHomography)
+		output += this.medianReconstErrorTrue + "," + this.medianReconstErrorTrueFun + ","
+				+ this.medianReconstErrorEstFun + "," + this.medianReconstErrorEstHomography + ","
+				+ this.medianReconstErrorEstEssential + "\n";
 
 		// total reprojection errors
 		// (totalReprojErrorTrue,totalReprojErrorTrueFun,totalReprojErrorEstFun,totalReprojErrorEstHomography)
@@ -692,6 +712,14 @@ public class Sample {
 		sample.totalReconstErrorEstFun = Double.parseDouble(reconstErrorLine[2]);
 		sample.totalReconstErrorEstHomography = Double.parseDouble(reconstErrorLine[3]);
 		sample.totalReconstErrorEstEssential = Double.parseDouble(reconstErrorLine[4]);
+		line++;
+
+		reconstErrorLine = lines[line].split(",");
+		sample.medianReconstErrorTrue = Double.parseDouble(reconstErrorLine[0]);
+		sample.medianReconstErrorTrueFun = Double.parseDouble(reconstErrorLine[1]);
+		sample.medianReconstErrorEstFun = Double.parseDouble(reconstErrorLine[2]);
+		sample.medianReconstErrorEstHomography = Double.parseDouble(reconstErrorLine[3]);
+		sample.medianReconstErrorEstEssential = Double.parseDouble(reconstErrorLine[4]);
 		line++;
 
 		// reprojection errors

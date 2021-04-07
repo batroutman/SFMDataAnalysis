@@ -32,13 +32,15 @@ public class SFMDataAnalysis {
 		// link OpenCV binaries
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		System.out.println("Hello world!");
+//		ModelTesting.generateTrainingData();
 //		test5();
 //		List<FinalizedData> data = loadData("results/data/train-1614974242961.dat");
 //		ModelTesting.trainModelFromScratch("results/data/train-1615346519237-1615346519237.dat",
 //				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
 //		ModelTesting.generateTrainingData();
 
-		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 30);
+		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 60);
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 60);
 //		test4();
 //		Tests.testOpticalFlow();
 	}
@@ -69,7 +71,9 @@ public class SFMDataAnalysis {
 		FinalizedData copy = FinalizedData.parse(serial);
 		Utils.pl("copy:\n" + copy.stringify());
 
-		double totalError = ComputerVision.totalReconstructionError(sample.estPointsEstFun, sample.truePoints);
+		DoubleWrapper medianError = new DoubleWrapper();
+		double totalError = ComputerVision.totalReconstructionError(sample.estPointsEstFun, sample.truePoints,
+				medianError);
 		double avgError = totalError / sample.truePoints.size();
 		Utils.pl("totalError: " + totalError);
 		Utils.pl("avgError: " + avgError);

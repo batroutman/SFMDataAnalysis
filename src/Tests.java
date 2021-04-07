@@ -100,4 +100,8 @@ public class Tests {
 		}
 	}
 
+	public static void changeMe(Double d) {
+		d = 8d;
+	}
+
 }

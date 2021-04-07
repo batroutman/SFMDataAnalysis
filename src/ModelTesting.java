@@ -197,9 +197,11 @@ public class ModelTesting {
 
 	public static void generateTrainingData() {
 
-		long seed = System.currentTimeMillis();
+//		long seed = System.currentTimeMillis();
 
-		String OUT_FILE = "results/data/test-" + System.currentTimeMillis() + "-" + seed + ".dat";
+		long seed = 1615346519237L;
+
+		String OUT_FILE = "results/data/training-" + System.currentTimeMillis() + "-" + seed + ".dat";
 		String serializedData = "";
 		Random rand = new Random(seed);
 
@@ -209,7 +211,7 @@ public class ModelTesting {
 		int failed = 0;
 
 		// high-parallax
-		int highParallaxIterations = 1000;
+		int highParallaxIterations = 10000;
 		double maxBaseline = 0.4;
 		double rotRange = 0.25;
 		double rotOffset = rotRange / 2;
@@ -263,6 +265,9 @@ public class ModelTesting {
 				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
 				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
 				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.medianReconstErrorEstFun = sample.medianReconstErrorEstFun;
+				fd.medianReconstErrorEstHomography = sample.medianReconstErrorEstHomography;
+				fd.medianReconstErrorEstEssential = sample.medianReconstErrorEstEssential;
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;
@@ -290,7 +295,7 @@ public class ModelTesting {
 		Utils.pl("====================================  PLANAR SCENE  =================================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int planarIterations = 1000;
+		int planarIterations = 10000;
 		maxBaseline = 0.4;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
@@ -344,6 +349,9 @@ public class ModelTesting {
 				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
 				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
 				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.medianReconstErrorEstFun = sample.medianReconstErrorEstFun;
+				fd.medianReconstErrorEstHomography = sample.medianReconstErrorEstHomography;
+				fd.medianReconstErrorEstEssential = sample.medianReconstErrorEstEssential;
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;
@@ -375,7 +383,7 @@ public class ModelTesting {
 		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int hpRotationIterations = 1000;
+		int hpRotationIterations = 10000;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment hpRotationMock = new VirtualEnvironment();
@@ -416,6 +424,9 @@ public class ModelTesting {
 				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
 				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
 				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.medianReconstErrorEstFun = sample.medianReconstErrorEstFun;
+				fd.medianReconstErrorEstHomography = sample.medianReconstErrorEstHomography;
+				fd.medianReconstErrorEstEssential = sample.medianReconstErrorEstEssential;
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;
@@ -444,7 +455,7 @@ public class ModelTesting {
 		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int planarRotationIterations = 1000;
+		int planarRotationIterations = 10000;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment planarRotationMock = new VirtualEnvironment();
@@ -485,6 +496,9 @@ public class ModelTesting {
 				fd.totalReconstErrorEstFun = sample.totalReconstErrorEstFun;
 				fd.totalReconstErrorEstHomography = sample.totalReconstErrorEstHomography;
 				fd.totalReconstErrorEstEssential = sample.totalReconstErrorEstEssential;
+				fd.medianReconstErrorEstFun = sample.medianReconstErrorEstFun;
+				fd.medianReconstErrorEstHomography = sample.medianReconstErrorEstHomography;
+				fd.medianReconstErrorEstEssential = sample.medianReconstErrorEstEssential;
 				fd.transChordalEstFun = sample.transChordalEstFun;
 				fd.transChordalEstHomography = sample.transChordalEstHomography;
 				fd.transChordalEstEssential = sample.transChordalEstEssential;

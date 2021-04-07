@@ -732,7 +732,7 @@ public class ImageData {
 
 	public MatOfPoint2f GFTT(int NUM_FEATURES) {
 		MatOfPoint p0MatofPoint = new MatOfPoint();
-		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.01, 15, new Mat(), 7, false, 0.04);
+		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.05, 7, new Mat(), 7, false, 0.04);
 		MatOfPoint2f p0 = new MatOfPoint2f(p0MatofPoint.toArray());
 		return p0;
 	}

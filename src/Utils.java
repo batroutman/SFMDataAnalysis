@@ -40,16 +40,31 @@ public class Utils {
 	}
 
 	public static Matrix MatToMatrix(Mat mat) {
-		double[] buffer = new double[mat.rows() * mat.cols()];
-		mat.get(0, 0, buffer);
-		Matrix matrix = new Matrix(mat.rows(), mat.cols());
-		for (int i = 0; i < matrix.getRowDimension(); i++) {
-			for (int j = 0; j < matrix.getColumnDimension(); j++) {
-				matrix.set(i, j, buffer[i * mat.cols() + j]);
+		if (mat.type() == 6) {
+			double[] buffer = new double[mat.rows() * mat.cols()];
+			mat.get(0, 0, buffer);
+			Matrix matrix = new Matrix(mat.rows(), mat.cols());
+			for (int i = 0; i < matrix.getRowDimension(); i++) {
+				for (int j = 0; j < matrix.getColumnDimension(); j++) {
+					matrix.set(i, j, buffer[i * mat.cols() + j]);
+				}
 			}
+
+			return matrix;
+		} else {
+			// 0
+			byte[] buffer = new byte[mat.rows() * mat.cols()];
+			mat.get(0, 0, buffer);
+			Matrix matrix = new Matrix(mat.rows(), mat.cols());
+			for (int i = 0; i < matrix.getRowDimension(); i++) {
+				for (int j = 0; j < matrix.getColumnDimension(); j++) {
+					matrix.set(i, j, Byte.toUnsignedInt(buffer[i * mat.cols() + j]));
+				}
+			}
+
+			return matrix;
 		}
 
-		return matrix;
 	}
 
 	public static Mat MatrixToMat(Matrix matrix) {
@@ -100,10 +115,10 @@ public class Utils {
 
 		// calculate the new rotation difference from pose0 -> pose1
 		Matrix newQuat = quatMult(q1, q0Inv);
-		pl("q1: " + q1.get(0, 0) + ", " + q1.get(1, 0) + ", " + q1.get(2, 0) + ", " + q1.get(3, 0));
-		pl("q0Inv: " + q0Inv.get(0, 0) + ", " + q0Inv.get(1, 0) + ", " + q0Inv.get(2, 0) + ", " + q0Inv.get(3, 0));
-		pl("quatMult: " + newQuat.get(0, 0) + ", " + newQuat.get(1, 0) + ", " + newQuat.get(2, 0) + ", "
-				+ newQuat.get(3, 0));
+//		pl("q1: " + q1.get(0, 0) + ", " + q1.get(1, 0) + ", " + q1.get(2, 0) + ", " + q1.get(3, 0));
+//		pl("q0Inv: " + q0Inv.get(0, 0) + ", " + q0Inv.get(1, 0) + ", " + q0Inv.get(2, 0) + ", " + q0Inv.get(3, 0));
+//		pl("quatMult: " + newQuat.get(0, 0) + ", " + newQuat.get(1, 0) + ", " + newQuat.get(2, 0) + ", "
+//				+ newQuat.get(3, 0));
 
 		// calculate absolute translation difference
 		double cx = pose1.getCx() - pose0.getCx();

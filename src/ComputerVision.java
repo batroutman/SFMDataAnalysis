@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -377,10 +378,43 @@ public class ComputerVision {
 		points1Mat.fromList(points1);
 
 		long start = System.currentTimeMillis();
-		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_7POINT);
-//		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, 2, 0.99, 500);
-		long end = System.currentTimeMillis();
-//		Utils.pl("Fundamental matrix estimation time: " + (end - start) + "ms");
+		double reprojThresh = 2;
+		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, reprojThresh,
+				0.99, 2000);
+
+		// filter out outliers
+		Matrix RANSACFun = Utils.MatToMatrix(fundamentalMatrix);
+		List<Point> points0Inliers = new ArrayList<Point>();
+		List<Point> points1Inliers = new ArrayList<Point>();
+		for (int i = 0; i < points0.size(); i++) {
+			Matrix p0 = new Matrix(3, 1);
+			p0.set(0, 0, points0.get(i).x);
+			p0.set(1, 0, points0.get(i).y);
+			p0.set(2, 0, 1);
+			Matrix p1 = new Matrix(3, 1);
+			p1.set(0, 0, points1.get(i).x);
+			p1.set(1, 0, points1.get(i).y);
+			p1.set(2, 0, 1);
+			double eval = p0.transpose().times(RANSACFun).times(p1).get(0, 0);
+
+			if (eval < reprojThresh) {
+				points0Inliers.add(points0.get(i));
+				points1Inliers.add(points1.get(i));
+			}
+		}
+
+		Utils.pl("num inliers: " + points0Inliers.size());
+
+		if (points0Inliers.size() >= 8) {
+			MatOfPoint2f points0InlierMat = new MatOfPoint2f();
+			MatOfPoint2f points1InlierMat = new MatOfPoint2f();
+			points0InlierMat.fromList(points0Inliers);
+			points1InlierMat.fromList(points1Inliers);
+
+			fundamentalMatrix = Calib3d.findFundamentalMat(points0InlierMat, points1InlierMat, Calib3d.FM_8POINT);
+			long end = System.currentTimeMillis();
+//			Utils.pl("Fundamental matrix estimation time: " + (end - start) + "ms");
+		}
 
 		return Utils.MatToMatrix(fundamentalMatrix);
 	}
@@ -568,7 +602,8 @@ public class ComputerVision {
 
 	}
 
-	public static double totalReconstructionError(List<Matrix> triangulated, List<Matrix> truePoints) {
+	public static double totalReconstructionError(List<Matrix> triangulated, List<Matrix> truePoints,
+			DoubleWrapper median) {
 
 		// get scale factor for triangulated points
 		double trueScale = truePoints.get(0).getMatrix(0, 2, 0, 0).minus(truePoints.get(1).getMatrix(0, 2, 0, 0))
@@ -590,6 +625,12 @@ public class ComputerVision {
 			reconstructionErrors.add(error);
 			totalError += error;
 //			Utils.pl("error: " + error);
+		}
+
+		// sort reconstruction errors and get median
+		Collections.sort(reconstructionErrors);
+		if (reconstructionErrors.size() > 0) {
+			median.value = reconstructionErrors.get(reconstructionErrors.size() / 2);
 		}
 
 		return totalError;
