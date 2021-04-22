@@ -102,7 +102,6 @@ public class Utils {
 	}
 
 	// return a Pose P such that P * pose0 = pose1
-	// CORRECTION: return a Pose P such that P * pose1 = pose0?
 	public static Pose getPoseDifference(Pose pose0, Pose pose1) {
 		Matrix q1 = new Matrix(4, 1);
 		q1.set(0, 0, pose1.getQw());

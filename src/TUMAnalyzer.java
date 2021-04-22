@@ -130,8 +130,9 @@ public class TUMAnalyzer {
 
 				// // // create poses for first and current frames, calculate true difference
 				Pose pose1 = poses.get(i * batchSize + j);
-//				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
-				Pose poseDiff = Utils.getPoseDifference(pose1, pose0);
+				Utils.pl("absolute pose1: ");
+				pose1.getHomogeneousMatrix().print(10, 5);
+				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
 				Utils.pl("poseDiff:");
 				poseDiff.getHomogeneousMatrix().print(10, 5);
 				double baselineLength = Math.sqrt(
@@ -210,7 +211,7 @@ public class TUMAnalyzer {
 			// Rescaled Median Reconstruction Error
 			// Normalized Translational Chordal Distance
 			final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-					.title("Translation Error for TUM LOH").xAxisTitle("Frame Number")
+					.title("Translation Error for TUM STF (No BA)").xAxisTitle("Frame Number")
 					.yAxisTitle("Normalized Translational Chordal Distance").build();
 
 			// Customize Chart
