@@ -40,9 +40,9 @@ public class ComputerVision {
 
 		SingularValueDecomposition svd = A.svd();
 		long end = System.currentTimeMillis();
-		Utils.pl("tomono time: " + (end - start) + "ms");
-		Utils.pl("svd S");
-		svd.getS().print(10, 5);
+//		Utils.pl("tomono time: " + (end - start) + "ms");
+//		Utils.pl("svd S");
+//		svd.getS().print(10, 5);
 
 		double s7 = svd.getS().get(6, 6);
 		double s8 = svd.getS().get(7, 7);
@@ -378,11 +378,11 @@ public class ComputerVision {
 		points1Mat.fromList(points1);
 
 		long start = System.currentTimeMillis();
-		double reprojThresh = 2;
-		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, reprojThresh,
-				0.99, 2000);
+		double reprojThresh = 3;
+		Mat fundamentalMatrix = Calib3d.findFundamentalMat(points0Mat, points1Mat, Calib3d.FM_RANSAC, reprojThresh, 0.9,
+				5000);
 
-		// filter out outliers
+		// filter out outliers (unused)
 		Matrix RANSACFun = Utils.MatToMatrix(fundamentalMatrix);
 		List<Point> points0Inliers = new ArrayList<Point>();
 		List<Point> points1Inliers = new ArrayList<Point>();
@@ -397,7 +397,7 @@ public class ComputerVision {
 			p1.set(2, 0, 1);
 			double eval = p0.transpose().times(RANSACFun).times(p1).get(0, 0);
 
-			if (eval < reprojThresh) {
+			if (eval < reprojThresh * 1 || true) {
 				points0Inliers.add(points0.get(i));
 				points1Inliers.add(points1.get(i));
 			}

@@ -14,6 +14,11 @@ import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler;
+import org.knowm.xchart.style.Styler.LegendPosition;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -199,9 +204,9 @@ public class ModelTesting {
 
 //		long seed = System.currentTimeMillis();
 
-		long seed = 1615346519237L;
+		long seed = 1615348975802L;
 
-		String OUT_FILE = "results/data/training-" + System.currentTimeMillis() + "-" + seed + ".dat";
+		String OUT_FILE = "results/data/testing-" + System.currentTimeMillis() + "-" + seed + ".dat";
 		String serializedData = "";
 		Random rand = new Random(seed);
 
@@ -211,7 +216,7 @@ public class ModelTesting {
 		int failed = 0;
 
 		// high-parallax
-		int highParallaxIterations = 10000;
+		int highParallaxIterations = 1000;
 		double maxBaseline = 0.4;
 		double rotRange = 0.25;
 		double rotOffset = rotRange / 2;
@@ -295,7 +300,7 @@ public class ModelTesting {
 		Utils.pl("====================================  PLANAR SCENE  =================================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int planarIterations = 10000;
+		int planarIterations = 1000;
 		maxBaseline = 0.4;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
@@ -383,7 +388,7 @@ public class ModelTesting {
 		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int hpRotationIterations = 10000;
+		int hpRotationIterations = 1000;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment hpRotationMock = new VirtualEnvironment();
@@ -455,7 +460,7 @@ public class ModelTesting {
 		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
-		int planarRotationIterations = 10000;
+		int planarRotationIterations = 1000;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment planarRotationMock = new VirtualEnvironment();
@@ -577,6 +582,84 @@ public class ModelTesting {
 		}
 
 		return data;
+	}
+
+	public static void testModels() {
+
+		String DATA_FILE = "results/data/TUM_samples_120.dat";
+//		String DATA_FILE = "results/data/testing-1617851095921-1615348975802.dat";
+
+		String FUN_MODEL_FILE = "results/models/logreg_FUNDAMENTAL_10-03-2021_13-52-21_rotExcluded-P0.7967-R0.9071-F0.8483.model";
+		String ESS_MODEL_FILE = "results/models/logreg_ESSENTIAL_07-04-2021_23-06-55_rotExcluded-P0.8185-R0.7180-F0.7650.model";
+		String HOM_MODEL_FILE = "results/models/logreg_HOMOGRAPHY_10-03-2021_14-09-03_rotExcluded-P0.9086-R0.9739-F0.9401.model";
+		String ROT_MODEL_FILE = "results/models/logreg_ROTATION_10-03-2021_00-28-44-P0.7786-R0.9090-F0.8388.model";
+
+		// get the models
+		MultiLayerNetwork modelFun = null;
+		MultiLayerNetwork modelEss = null;
+		MultiLayerNetwork modelHom = null;
+		MultiLayerNetwork modelRot = null;
+
+		try {
+			modelFun = MultiLayerNetwork.load(new File(FUN_MODEL_FILE), true);
+			modelEss = MultiLayerNetwork.load(new File(ESS_MODEL_FILE), true);
+			modelHom = MultiLayerNetwork.load(new File(HOM_MODEL_FILE), true);
+			modelRot = MultiLayerNetwork.load(new File(ROT_MODEL_FILE), true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		// get the data
+		List<FinalizedData> data = loadData(DATA_FILE);
+
+		// get predictions
+		double[] predFun = getPredictions(modelFun, data);
+		double[] predEss = getPredictions(modelEss, data);
+		double[] predHom = getPredictions(modelHom, data);
+		double[] predRot = getPredictions(modelRot, data);
+
+		// establish index list
+		double[] indices = new double[data.size()];
+		for (int i = 0; i < indices.length; i++) {
+			indices[i] = i + 1;
+		}
+
+		// chart results
+		final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
+				.title("Predictions on First 120 Frames (>0.5 means positive class)").xAxisTitle("Frame Number")
+				.yAxisTitle("Prediction").build();
+
+		// Customize Chart
+		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
+
+		// Series
+		chart.addSeries("Fundamental Matrix Estimate (8PA)", indices, predFun);
+		chart.addSeries("Essential Matrix Estimate (5PA)", indices, predEss);
+		chart.addSeries("Homography Estimate (4PA)", indices, predHom);
+		chart.addSeries("Pure Rotation", indices, predRot);
+
+		// Show it
+		new SwingWrapper(chart).displayChart();
+	}
+
+	public static double[] getPredictions(MultiLayerNetwork model, List<FinalizedData> data) {
+
+		// create input array (normalize data)
+		INDArray input = Nd4j.zeros(data.size(), 23);
+		for (int i = 0; i < data.size(); i++) {
+			INDArray row = Nd4j.create(data.get(i).summary.getArray());
+			input.putRow(i, row);
+		}
+
+		INDArray output = model.output(input);
+
+		double[] predictions = new double[output.rows()];
+		for (int i = 0; i < output.rows(); i++) {
+			predictions[i] = output.getDouble(i);
+		}
+
+		return predictions;
+
 	}
 
 }

@@ -11,6 +11,8 @@ import Jama.Matrix;
 // class to generate 3D points
 public class VirtualEnvironment {
 
+	public static double PROJECTION_NOISE_VARIANCE = 9;
+
 	protected CameraParams cameraParams = new CameraParams();
 	protected List<Matrix> worldPoints = new ArrayList<Matrix>();
 	protected Pose primaryCamera = new Pose();
@@ -41,6 +43,22 @@ public class VirtualEnvironment {
 		this.worldPoints.clear();
 
 		this.worldPoints.addAll(this.getPointsInSphere(seed, numPoints, 0, 0, 0, 1, 1));
+	}
+
+	public void generateScene0(long seed) {
+		this.worldPoints.clear();
+
+		// desk front
+		this.worldPoints.addAll(this.getPointsInPlane(seed, 40, 0, 1, 3, 0, 0, 1, 3, 1, 0, 0));
+
+		// desk backboard
+		this.worldPoints.addAll(this.getPointsInPlane(seed, 40, 0, 0, 4, 0, 0, 1, 3, 1, 0, 0));
+
+		// desk backboard picture
+		this.worldPoints.addAll(this.getPointsInPlane(seed, 50, 0.5, 0, 4, 0, 0, 1, 0.5, 0.5, 0, 0));
+
+		// desk top
+		this.worldPoints.addAll(this.getPointsInPlane(seed, 20, 0, 0.5, 3.5, 0, -1, 0, 3, 1, 1, 0));
 	}
 
 	public List<Matrix> getPointsInPlane(long seed, int numPoints, double x0, double y0, double z0, double normalX,
@@ -140,17 +158,18 @@ public class VirtualEnvironment {
 		byte[] buffer = new byte[this.cameraParams.width * this.cameraParams.height];
 		this.fillBuffer(buffer, backgroundIntensity);
 
+		Random gaussRand = new Random(1777);
+
 		// for each world coordinate, project onto image and add to buffer (if it should
 		// be one the image)
 		for (int i = 0; i < this.worldPoints.size(); i++) {
-			Matrix projCoord = this.cameraParams.getK4x4().times(pose.getHomogeneousMatrix())
-					.times(this.worldPoints.get(i));
+			Matrix projCoord = this.getProjection(pose, this.worldPoints.get(i), gaussRand, PROJECTION_NOISE_VARIANCE);
 
 			// discard if point is behind camera
-			if (projCoord.get(2, 0) < 0) {
+			if (projCoord == null) {
 				continue;
 			}
-			projCoord = projCoord.times(1 / projCoord.get(2, 0));
+
 			int x = (int) projCoord.get(0, 0);
 			int y = (int) projCoord.get(1, 0);
 
@@ -196,28 +215,27 @@ public class VirtualEnvironment {
 		oTruePoints.clear();
 
 		List<Correspondence2D2D> correspondences = new ArrayList<Correspondence2D2D>();
+		Random gaussRand = new Random(1777);
 
 		// for each world point, project into both frames
 		// if the point appears in both frames, save a correspondence for it
 		for (int i = 0; i < this.worldPoints.size(); i++) {
 			Matrix point = this.worldPoints.get(i);
 
-			Matrix projCoordPrimary = this.cameraParams.getK4x4().times(this.primaryCamera.getHomogeneousMatrix())
-					.times(point);
-			Matrix projCoordSecondary = this.cameraParams.getK4x4().times(this.secondaryCamera.getHomogeneousMatrix())
-					.times(point);
+			Matrix projCoordPrimary = this.getProjection(this.primaryCamera, point, gaussRand,
+					PROJECTION_NOISE_VARIANCE);
+			Matrix projCoordSecondary = this.getProjection(this.secondaryCamera, point, gaussRand,
+					PROJECTION_NOISE_VARIANCE);
 
 			// discard if point is behind camera
-			if (projCoordPrimary.get(2, 0) < 0 || projCoordSecondary.get(2, 0) < 0) {
+			if (projCoordPrimary == null || projCoordSecondary == null) {
 				continue;
 			}
 
-			// heterogenize
-			projCoordPrimary = projCoordPrimary.times(1 / projCoordPrimary.get(2, 0));
+			// convert to ints
 			int x0 = (int) projCoordPrimary.get(0, 0);
 			int y0 = (int) projCoordPrimary.get(1, 0);
 
-			projCoordSecondary = projCoordSecondary.times(1 / projCoordSecondary.get(2, 0));
 			int x1 = (int) projCoordSecondary.get(0, 0);
 			int y1 = (int) projCoordSecondary.get(1, 0);
 
@@ -231,6 +249,33 @@ public class VirtualEnvironment {
 		}
 
 		return correspondences;
+	}
+
+	// given a camera and a 4D homogeneous point, return the homogeneous projection
+	// of that point onto the camera.
+	// if projected point is behind camera, return null
+	public Matrix getProjection(Pose pose, Matrix point, Random rand, double noiseVariance) {
+
+		// get projection
+		Matrix projCoord = this.cameraParams.getK4x4().times(pose.getHomogeneousMatrix()).times(point);
+
+		// test if in front of camera
+		if (projCoord.get(2, 0) <= 0) {
+			return null;
+		}
+
+		// homogenize projection
+		projCoord = projCoord.times(1 / projCoord.get(2, 0));
+
+		// add gaussian noise to point
+		double xNoise = rand.nextGaussian() * Math.sqrt(noiseVariance);
+		double yNoise = rand.nextGaussian() * Math.sqrt(noiseVariance);
+
+		projCoord.set(0, 0, projCoord.get(0, 0) + xNoise);
+		projCoord.set(1, 0, projCoord.get(1, 0) + yNoise);
+
+		return projCoord;
+
 	}
 
 	public Matrix getTrueFundamentalMatrix() {

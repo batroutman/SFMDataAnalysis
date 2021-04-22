@@ -1,7 +1,10 @@
+import org.ejml.data.DMatrixRMaj;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import Jama.Matrix;
+import georegression.geometry.ConvertRotation3D_F64;
+import georegression.struct.so.Quaternion_F64;
 
 public class Utils {
 
@@ -99,6 +102,7 @@ public class Utils {
 	}
 
 	// return a Pose P such that P * pose0 = pose1
+	// CORRECTION: return a Pose P such that P * pose1 = pose0?
 	public static Pose getPoseDifference(Pose pose0, Pose pose1) {
 		Matrix q1 = new Matrix(4, 1);
 		q1.set(0, 0, pose1.getQw());
@@ -134,6 +138,22 @@ public class Utils {
 		newPose.setCy(cy);
 		newPose.setCz(cz);
 		return newPose;
+	}
+
+	public static Pose matrixToPose(Matrix matrix) {
+		Pose pose = new Pose();
+
+		DMatrixRMaj R = new DMatrixRMaj(matrix.getMatrix(0, 2, 0, 2).getArray());
+
+		Quaternion_F64 q = ConvertRotation3D_F64.matrixToQuaternion(R, null);
+		q.normalize();
+		pose.setQw(q.w);
+		pose.setQx(q.x);
+		pose.setQy(q.y);
+		pose.setQz(q.z);
+		pose.setT(matrix.get(0, 3), matrix.get(1, 3), matrix.get(2, 3));
+
+		return pose;
 	}
 
 }

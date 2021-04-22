@@ -206,78 +206,8 @@ public class Sample {
 		this.estPointsEstEssential = ComputerVision.triangulateCorrespondences(poseEstEssential,
 				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences);
 
-		// reconstruction errors
-		DoubleWrapper medianWrapper = new DoubleWrapper();
-		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints,
-				medianWrapper);
-		this.medianReconstErrorTrue = medianWrapper.value;
-		this.totalReconstErrorTrueFun = ComputerVision.totalReconstructionError(this.estPointsTrueFun, this.truePoints,
-				medianWrapper);
-		this.medianReconstErrorTrueFun = medianWrapper.value;
-		this.totalReconstErrorEstFun = ComputerVision.totalReconstructionError(this.estPointsEstFun, this.truePoints,
-				medianWrapper);
-		this.medianReconstErrorEstFun = medianWrapper.value;
-		this.totalReconstErrorEstHomography = ComputerVision.totalReconstructionError(this.estPointsEstHomography,
-				this.truePoints, medianWrapper);
-		this.medianReconstErrorEstHomography = medianWrapper.value;
-		this.totalReconstErrorEstEssential = ComputerVision.totalReconstructionError(this.estPointsEstEssential,
-				this.truePoints, medianWrapper);
-		this.medianReconstErrorEstEssential = medianWrapper.value;
-
-		// reprojection errors
-		this.totalReprojErrorTrue = ComputerVision.getTotalReprojectionError(
-				this.secondaryCamera.getHomogeneousMatrix(), this.primaryCamera.getHomogeneousMatrix(), cameraParams,
-				correspondences, this.estPointsTrue);
-		this.totalReprojErrorTrueFun = ComputerVision.getTotalReprojectionError(this.poseTrueFun,
-				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsTrueFun);
-		this.totalReprojErrorEstFun = ComputerVision.getTotalReprojectionError(this.poseEstFun,
-				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstFun);
-		this.totalReprojErrorEstHomography = ComputerVision.getTotalReprojectionError(this.poseEstHomography,
-				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstHomography);
-		this.totalReprojErrorEstEssential = ComputerVision.getTotalReprojectionError(this.poseEstEssential,
-				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstEssential);
-
-		// chordal distances
-		this.rotChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 0, 2),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
-		this.rotChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 0, 2),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
-		this.rotChordalEstHomography = Utils.chordalDistance(poseEstHomography.getMatrix(0, 2, 0, 2),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
-		this.rotChordalEstEssential = Utils.chordalDistance(poseEstEssential.getMatrix(0, 2, 0, 2),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
-
-		this.transChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 3, 3).times(
-				1 / (poseTrueFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseTrueFun.getMatrix(0, 2, 3, 3).normF() : 1)),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
-								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1)));
-
-		this.transChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 3, 3).times(
-				1 / (poseEstFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseEstFun.getMatrix(0, 2, 3, 3).normF() : 1)),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
-								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1)));
-		this.transChordalEstHomography = Utils.chordalDistance(
-				poseEstHomography.getMatrix(0, 2, 3, 3)
-						.times(1 / (poseEstHomography.getMatrix(0, 2, 3, 3).normF() > 0
-								? poseEstHomography.getMatrix(0, 2, 3, 3).normF()
-								: 1)),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
-								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1)));
-		this.transChordalEstEssential = Utils.chordalDistance(
-				poseEstEssential.getMatrix(0, 2, 3, 3)
-						.times(1 / (poseEstEssential.getMatrix(0, 2, 3, 3).normF() > 0
-								? poseEstEssential.getMatrix(0, 2, 3, 3).normF()
-								: 1)),
-				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
-						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
-								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
-								: 1)));
+		// calculate error metrics
+		this.errorMetrics();
 
 	}
 
@@ -747,6 +677,110 @@ public class Sample {
 		sample.transChordalEstEssential = Double.parseDouble(transChordalLine[3]);
 
 		return sample;
+	}
+
+	public void bundleAdjust() {
+
+		// estimated fundamental matrix
+		Pose poseEstFunPose = Utils.matrixToPose(this.poseEstFun);
+		BundleAdjustor.bundleAdjustPair(this.primaryCamera, poseEstFunPose, this.estPointsEstFun, this.correspondences,
+				10);
+		this.poseEstFun = poseEstFunPose.getHomogeneousMatrix();
+
+		// estimated essential matrix
+		Pose poseEstEssentialPose = Utils.matrixToPose(this.poseEstEssential);
+		BundleAdjustor.bundleAdjustPair(this.primaryCamera, poseEstEssentialPose, this.estPointsEstEssential,
+				this.correspondences, 10);
+		this.poseEstEssential = poseEstEssentialPose.getHomogeneousMatrix();
+
+		// estimated essential matrix
+		Pose poseEstHomographyPose = Utils.matrixToPose(this.poseEstHomography);
+		BundleAdjustor.bundleAdjustPair(this.primaryCamera, poseEstHomographyPose, this.estPointsEstHomography,
+				this.correspondences, 10);
+		this.poseEstHomography = poseEstHomographyPose.getHomogeneousMatrix();
+
+		// re-evaluate metrics
+		this.errorMetrics();
+
+	}
+
+	public void errorMetrics() {
+
+		CameraParams cameraParams = new CameraParams();
+
+		// reconstruction errors
+		DoubleWrapper medianWrapper = new DoubleWrapper();
+		this.totalReconstErrorTrue = ComputerVision.totalReconstructionError(this.estPointsTrue, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorTrue = medianWrapper.value;
+		this.totalReconstErrorTrueFun = ComputerVision.totalReconstructionError(this.estPointsTrueFun, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorTrueFun = medianWrapper.value;
+		this.totalReconstErrorEstFun = ComputerVision.totalReconstructionError(this.estPointsEstFun, this.truePoints,
+				medianWrapper);
+		this.medianReconstErrorEstFun = medianWrapper.value;
+		this.totalReconstErrorEstHomography = ComputerVision.totalReconstructionError(this.estPointsEstHomography,
+				this.truePoints, medianWrapper);
+		this.medianReconstErrorEstHomography = medianWrapper.value;
+		this.totalReconstErrorEstEssential = ComputerVision.totalReconstructionError(this.estPointsEstEssential,
+				this.truePoints, medianWrapper);
+		this.medianReconstErrorEstEssential = medianWrapper.value;
+
+		// reprojection errors
+		this.totalReprojErrorTrue = ComputerVision.getTotalReprojectionError(
+				this.secondaryCamera.getHomogeneousMatrix(), this.primaryCamera.getHomogeneousMatrix(), cameraParams,
+				correspondences, this.estPointsTrue);
+		this.totalReprojErrorTrueFun = ComputerVision.getTotalReprojectionError(this.poseTrueFun,
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsTrueFun);
+		this.totalReprojErrorEstFun = ComputerVision.getTotalReprojectionError(this.poseEstFun,
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstFun);
+		this.totalReprojErrorEstHomography = ComputerVision.getTotalReprojectionError(this.poseEstHomography,
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstHomography);
+		this.totalReprojErrorEstEssential = ComputerVision.getTotalReprojectionError(this.poseEstEssential,
+				this.primaryCamera.getHomogeneousMatrix(), cameraParams, correspondences, this.estPointsEstEssential);
+
+		// chordal distances
+		this.rotChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 0, 2),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+		this.rotChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 0, 2),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+		this.rotChordalEstHomography = Utils.chordalDistance(poseEstHomography.getMatrix(0, 2, 0, 2),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+		this.rotChordalEstEssential = Utils.chordalDistance(poseEstEssential.getMatrix(0, 2, 0, 2),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 0, 2));
+
+		this.transChordalTrueFun = Utils.chordalDistance(poseTrueFun.getMatrix(0, 2, 3, 3).times(
+				1 / (poseTrueFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseTrueFun.getMatrix(0, 2, 3, 3).normF() : 1)),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1)));
+
+		this.transChordalEstFun = Utils.chordalDistance(poseEstFun.getMatrix(0, 2, 3, 3).times(
+				1 / (poseEstFun.getMatrix(0, 2, 3, 3).normF() > 0 ? poseEstFun.getMatrix(0, 2, 3, 3).normF() : 1)),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1)));
+		this.transChordalEstHomography = Utils.chordalDistance(
+				poseEstHomography.getMatrix(0, 2, 3, 3)
+						.times(1 / (poseEstHomography.getMatrix(0, 2, 3, 3).normF() > 0
+								? poseEstHomography.getMatrix(0, 2, 3, 3).normF()
+								: 1)),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1)));
+		this.transChordalEstEssential = Utils.chordalDistance(
+				poseEstEssential.getMatrix(0, 2, 3, 3)
+						.times(1 / (poseEstEssential.getMatrix(0, 2, 3, 3).normF() > 0
+								? poseEstEssential.getMatrix(0, 2, 3, 3).normF()
+								: 1)),
+				this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3)
+						.times(1 / (this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF() > 0
+								? this.secondaryCamera.getHomogeneousMatrix().getMatrix(0, 2, 3, 3).normF()
+								: 1)));
+
 	}
 
 }

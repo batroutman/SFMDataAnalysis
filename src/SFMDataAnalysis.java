@@ -11,6 +11,7 @@ import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler;
 import org.knowm.xchart.style.Styler.LegendPosition;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
@@ -35,14 +36,16 @@ public class SFMDataAnalysis {
 //		ModelTesting.generateTrainingData();
 //		test5();
 //		List<FinalizedData> data = loadData("results/data/train-1614974242961.dat");
-//		ModelTesting.trainModelFromScratch("results/data/train-1615346519237-1615346519237.dat",
-//				"results/data/test-1615348975802-1615348975802.dat", ModelTesting.MODE.HOMOGRAPHY, true);
+//		ModelTesting.trainModelFromScratch("results/data/training-1617759418201-1615346519237.dat",
+//				"results/data/testing-1617851095921-1615348975802.dat", ModelTesting.MODE.ESSENTIAL, true);
 //		ModelTesting.generateTrainingData();
 
-		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 60);
-//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 60);
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 60);
+		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 90);
 //		test4();
 //		Tests.testOpticalFlow();
+//		ModelTesting.testModels();
 	}
 
 	public static void test6() {
@@ -96,15 +99,17 @@ public class SFMDataAnalysis {
 	public static void test5() {
 		VirtualEnvironment mock = new VirtualEnvironment();
 //		mock.generateSphericalScene(0, 1000);
-		mock.getSecondaryCamera().setCz(0);
-		mock.getSecondaryCamera().setCx(0);
+		mock.generateScene0(0);
+		mock.getSecondaryCamera().setCz(0.8 * 2);
+		mock.getSecondaryCamera().setCx(-1.2 * 2);
 //		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
 
 //		mock.getSecondaryCamera().setCz(-0.125);
 //		mock.getSecondaryCamera().setCx(-0.25);
-		mock.getSecondaryCamera().rotateEuler(-0.02916360814835181, -0.08851323731413557, 0.029986870696727896);
+//		mock.getSecondaryCamera().rotateEuler(-0.02916360814835181, -0.08851323731413557, 0.029986870696727896);
+		mock.getSecondaryCamera().rotateEuler(0.0, -0.3 * 2, 0);
 
-		mock.generatePlanarScene(0, 1000);
+//		mock.generatePlanarScene(0, 1000);
 
 		Utils.pl("numCorrespondences: " + mock.getCorrespondences().size());
 
@@ -127,11 +132,11 @@ public class SFMDataAnalysis {
 				image = mock.getSecondaryImage();
 			} else if (c == 38) {
 				// up
-				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() + 0.01);
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() + 0.1);
 				image = mock.getSecondaryImage();
 			} else if (c == 40) {
 				// down
-				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() - 0.01);
+				mock.getSecondaryCamera().setCz(mock.getSecondaryCamera().getCz() - 0.1);
 				image = mock.getSecondaryImage();
 			}
 		}
@@ -141,7 +146,9 @@ public class SFMDataAnalysis {
 	// by charting them
 	public static void test4() {
 		VirtualEnvironment mock = new VirtualEnvironment();
-		mock.generateSphericalScene(0, 1000);
+//		mock.generateSphericalScene(0, 1000);
+//		mock.generatePlanarScene(0, 1000);
+		mock.generateScene0(0);
 
 		// initial secondary camera
 		double z = 0;
@@ -152,14 +159,16 @@ public class SFMDataAnalysis {
 		mock.getSecondaryCamera().rotateEuler(0, rotY, 0);
 
 		// ending params and motion params
-		double endZ = -0.8;
-		double endX = -0.707;
-//		double endZ = -0.1;
-//		double endX = -0.088375;
+//		double endZ = -0.8 / 2;
+//		double endX = -0.707 / 2;
+		double endZ = 0.8 * 2;
+		double endX = -1.2 * 2;
+		double endRotY = -0.3 * 2;
 //		double endZ = 0;
 //		double endX = 0;
-		double endRotY = -0.125;
-		int numIterations = 50;
+//		double endRotY = -0.125 / 2;
+
+		int numIterations = 100;
 		double changeZ = (endZ - z) / numIterations;
 		double changeX = (endX - x) / numIterations;
 		double changeRotY = (endRotY - rotY) / numIterations;
@@ -191,6 +200,7 @@ public class SFMDataAnalysis {
 //			indexList[i] = i;
 			Sample sample = new Sample();
 			sample.evaluate(mock);
+			sample.bundleAdjust();
 
 			Utils.pl("numCorrespondences: " + sample.correspondences.size());
 			Utils.pl("avg essential reconstruction error: "
@@ -198,9 +208,14 @@ public class SFMDataAnalysis {
 			Utils.pl("sample.transChordalEstFun: " + sample.transChordalEstFun);
 
 			// average reconstruction errors
-			valueListFun[i] = sample.totalReconstErrorEstFun / sample.truePoints.size();
-			valueListHom[i] = sample.totalReconstErrorEstHomography / sample.truePoints.size();
-			valueListEss[i] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
+//			valueListFun[i] = sample.totalReconstErrorEstFun / sample.truePoints.size();
+//			valueListHom[i] = sample.totalReconstErrorEstHomography / sample.truePoints.size();
+//			valueListEss[i] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
+
+			// median reconstruction errors
+			valueListFun[i] = sample.medianReconstErrorEstFun;
+			valueListHom[i] = sample.medianReconstErrorEstHomography;
+			valueListEss[i] = sample.medianReconstErrorEstEssential;
 
 			// translational chordal distance
 //			valueListFun[i] = sample.transChordalEstFun;
@@ -208,10 +223,7 @@ public class SFMDataAnalysis {
 //			valueListEss[i] = sample.transChordalEstEssential;
 
 //			sample.poseEstHomography.print(10, 5);
-			Utils.pl("cheirality homography poses");
-			for (int j = 0; j < sample.homCheiralityPoses.size(); j++) {
-				sample.homCheiralityPoses.get(j).print(10, 5);
-			}
+
 			Utils.pl("true pose");
 			sample.secondaryCamera.getHomogeneousMatrix().print(10, 5);
 
@@ -230,20 +242,21 @@ public class SFMDataAnalysis {
 		Mat image = mock.getPrimaryImage();
 
 		// Create Chart
-		// Rescaled Average Reconstruction Error
+		// Rescaled Median Reconstruction Error
 		// Normalized Translational Chordal Distance
-		final XYChart chart = new XYChartBuilder().width(600).height(400)
-				.title("Error Metric Over Baseline for High Parallax Scene").xAxisTitle("Baseline")
-				.yAxisTitle("Rescaled Average Reconstruction Error").build();
+		final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
+				.title("Reconstruction Error for Scene 0 (No BA) (Variance "
+						+ VirtualEnvironment.PROJECTION_NOISE_VARIANCE + ")")
+				.xAxisTitle("Baseline Length").yAxisTitle("Rescaled Median Reconstruction Error").build();
 
 		// Customize Chart
 		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
 
 		// Series
-		chart.addSeries("Fundamental Matrix Estimate (7PA)", indexList, valueListFun);
+		chart.addSeries("Fundamental Matrix Estimate (8PA)", indexList, valueListFun);
 		chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
 		chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
-		chart.addSeries("Tomono score", indexList, valueListTomono);
+//		chart.addSeries("Tomono score", indexList, valueListTomono);
 
 		// Show it
 		new SwingWrapper(chart).displayChart();

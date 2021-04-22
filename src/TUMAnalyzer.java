@@ -1,6 +1,11 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler;
+import org.knowm.xchart.style.Styler.LegendPosition;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
@@ -48,6 +53,13 @@ public class TUMAnalyzer {
 			}
 
 		}
+
+		int numIterations = (batchSize - 1) * (batches.size() - 1) + (batches.get(batches.size() - 1).size() - 1);
+		double[] indexList = new double[numIterations];
+		double[] valueListFun = new double[numIterations];
+		double[] valueListHom = new double[numIterations];
+		double[] valueListEss = new double[numIterations];
+		int chartIndex = 0;
 
 		// for each batch,
 		for (int i = 0; i < batches.size(); i++) {
@@ -118,7 +130,8 @@ public class TUMAnalyzer {
 
 				// // // create poses for first and current frames, calculate true difference
 				Pose pose1 = poses.get(i * batchSize + j);
-				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
+//				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
+				Pose poseDiff = Utils.getPoseDifference(pose1, pose0);
 				Utils.pl("poseDiff:");
 				poseDiff.getHomogeneousMatrix().print(10, 5);
 				double baselineLength = Math.sqrt(
@@ -128,6 +141,7 @@ public class TUMAnalyzer {
 				// // // get sample for correspondences
 				Sample sample = new Sample();
 				sample.evaluate(new Pose(), poseDiff, correspondences, cameraParams, new Matrix(3, 3), true);
+//				sample.bundleAdjust();
 
 				// // // create finalized data and add it to output string (with frame nums)
 				FinalizedData fd = new FinalizedData();
@@ -166,22 +180,51 @@ public class TUMAnalyzer {
 				output += "# " + (i * batchSize) + "," + (j + i * batchSize) + "\n";
 				output += fd.stringify();
 
-//				Utils.pl("calculated pose: ");
-//				sample.poseEstEssential.print(15, 5);
-//
-//				Utils.pl("poseDiff: ");
-//				poseDiff.getHomogeneousMatrix().print(15, 5);
-//
-//				Utils.pl("poseDiff radians: ");
-//				Utils.pl("x: " + poseDiff.getRotX());
-//				Utils.pl("y: " + poseDiff.getRotY());
-//				Utils.pl("z: " + poseDiff.getRotZ());
-//
-//				Utils.pl("poseDiff quaternion: ");
-//				poseDiff.getQuaternion().print(15, 10);
+//				int chartIndex = i * batchSize + j - 1;
+				indexList[chartIndex] = chartIndex + 1;
+
+				// average reconstruction errors
+//				valueListFun[chartIndex] = sample.totalReconstErrorEstFun / sample.truePoints.size();
+//				valueListHom[chartIndex] = sample.totalReconstErrorEstHomography / sample.truePoints.size();
+//				valueListEss[chartIndex] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
+
+				// median reconstruction errors
+//				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
+//				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
+//				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
+
+				// translational chordal distance
+				valueListFun[chartIndex] = sample.transChordalEstFun;
+				valueListHom[chartIndex] = sample.transChordalEstHomography;
+				valueListEss[chartIndex] = sample.transChordalEstEssential;
+
+				chartIndex++;
 
 			}
 
+		}
+
+		boolean plot = true;
+		if (plot) {
+			// Create Chart
+			// Rescaled Median Reconstruction Error
+			// Normalized Translational Chordal Distance
+			final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
+					.title("Translation Error for TUM LOH").xAxisTitle("Frame Number")
+					.yAxisTitle("Normalized Translational Chordal Distance").build();
+
+			// Customize Chart
+			chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
+
+			// Series
+			chart.addSeries("Fundamental Matrix Estimate (8PA)", indexList, valueListFun);
+			chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
+			chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
+//					chart.addSeries("Tomono score", indexList, valueListTomono);
+//			chart.getStyler().setYAxisMax(10.0);
+
+			// Show it
+			new SwingWrapper(chart).displayChart();
 		}
 
 //		Utils.pl(output);
