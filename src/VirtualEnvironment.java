@@ -36,7 +36,7 @@ public class VirtualEnvironment {
 	public void generatePlanarScene(long seed, int numPoints) {
 		this.worldPoints.clear();
 
-		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 1, 0, 0, 1, 2, 2, 2, 0.03)); // 0.03
+		this.worldPoints.addAll(this.getPointsInPlane(seed, numPoints, 0, 0, 5, 0, 0, 1, 10, 10, 10, 0.03)); // 0.03
 	}
 
 	public void generateSphericalScene(long seed, int numPoints) {

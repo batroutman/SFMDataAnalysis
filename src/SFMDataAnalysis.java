@@ -36,12 +36,12 @@ public class SFMDataAnalysis {
 //		ModelTesting.generateTrainingData();
 //		test5();
 //		List<FinalizedData> data = loadData("results/data/train-1614974242961.dat");
-//		ModelTesting.trainModelFromScratch("results/data/training-1617759418201-1615346519237.dat",
-//				"results/data/testing-1617851095921-1615348975802.dat", ModelTesting.MODE.ESSENTIAL, true);
+		ModelTesting.trainModelFromScratch("results/data/train-rev1-1619546267482-1619546267482.dat",
+				"results/data/test-rev1-1619552540408-1619552540408.dat", ModelTesting.MODE.HOMOGRAPHY, false);
 //		ModelTesting.generateTrainingData();
 
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 60);
-		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 90);
 //		test4();
 //		Tests.testOpticalFlow();
@@ -99,7 +99,8 @@ public class SFMDataAnalysis {
 	public static void test5() {
 		VirtualEnvironment mock = new VirtualEnvironment();
 //		mock.generateSphericalScene(0, 1000);
-		mock.generateScene0(0);
+//		mock.generateScene0(0);
+		mock.generatePlanarScene(0, 1000);
 		mock.getSecondaryCamera().setCz(0.8 * 2);
 		mock.getSecondaryCamera().setCx(-1.2 * 2);
 //		mock.getSecondaryCamera().rotateEuler(0, Math.PI / 2, 0);
@@ -147,8 +148,8 @@ public class SFMDataAnalysis {
 	public static void test4() {
 		VirtualEnvironment mock = new VirtualEnvironment();
 //		mock.generateSphericalScene(0, 1000);
-//		mock.generatePlanarScene(0, 1000);
-		mock.generateScene0(0);
+		mock.generatePlanarScene(0, 1000);
+//		mock.generateScene0(0);
 
 		// initial secondary camera
 		double z = 0;
@@ -200,7 +201,7 @@ public class SFMDataAnalysis {
 //			indexList[i] = i;
 			Sample sample = new Sample();
 			sample.evaluate(mock);
-			sample.bundleAdjust();
+//			sample.bundleAdjust();
 
 			Utils.pl("numCorrespondences: " + sample.correspondences.size());
 			Utils.pl("avg essential reconstruction error: "
@@ -213,14 +214,14 @@ public class SFMDataAnalysis {
 //			valueListEss[i] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
 
 			// median reconstruction errors
-			valueListFun[i] = sample.medianReconstErrorEstFun;
-			valueListHom[i] = sample.medianReconstErrorEstHomography;
-			valueListEss[i] = sample.medianReconstErrorEstEssential;
+//			valueListFun[i] = sample.medianReconstErrorEstFun;
+//			valueListHom[i] = sample.medianReconstErrorEstHomography;
+//			valueListEss[i] = sample.medianReconstErrorEstEssential;
 
 			// translational chordal distance
-//			valueListFun[i] = sample.transChordalEstFun;
-//			valueListHom[i] = sample.transChordalEstHomography;
-//			valueListEss[i] = sample.transChordalEstEssential;
+			valueListFun[i] = sample.transChordalEstFun;
+			valueListHom[i] = sample.transChordalEstHomography;
+			valueListEss[i] = sample.transChordalEstEssential;
 
 //			sample.poseEstHomography.print(10, 5);
 
@@ -245,9 +246,8 @@ public class SFMDataAnalysis {
 		// Rescaled Median Reconstruction Error
 		// Normalized Translational Chordal Distance
 		final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-				.title("Reconstruction Error for Scene 0 (No BA) (Variance "
-						+ VirtualEnvironment.PROJECTION_NOISE_VARIANCE + ")")
-				.xAxisTitle("Baseline Length").yAxisTitle("Rescaled Median Reconstruction Error").build();
+				.title("Error for Scene 0 (No BA) (Variance " + VirtualEnvironment.PROJECTION_NOISE_VARIANCE + ")")
+				.xAxisTitle("Baseline Length").yAxisTitle("Normalized Translational Chordal Distance").build();
 
 		// Customize Chart
 		chart.getStyler().setLegendPosition(LegendPosition.InsideNE);

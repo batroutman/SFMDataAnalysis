@@ -734,12 +734,29 @@ public class ImageData {
 		MatOfPoint p0MatofPoint = new MatOfPoint();
 		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.01, 10, new Mat(), 7, false, 0.04);
 		MatOfPoint2f p0 = new MatOfPoint2f(p0MatofPoint.toArray());
+
+		// filter out points close to image edge
+		CameraParams cameraParams = new CameraParams();
+		int MARGIN = 50;
+		List<Point> points = p0.toList();
+		List<Point> filteredPoints = new ArrayList<Point>();
+		for (int i = 0; i < points.size(); i++) {
+			Point p = points.get(i);
+			if (p.x < MARGIN || p.x > cameraParams.width - MARGIN || p.y < MARGIN
+					|| p.y > cameraParams.height - MARGIN) {
+				continue;
+			}
+			filteredPoints.add(p);
+		}
+
+		p0.fromList(filteredPoints);
 		return p0;
 	}
 
 	public List<Correspondence2D2D> calcOpticalFlow(Mat prevFrame, MatOfPoint2f pInitial, MatOfPoint2f pPrev,
 			MatOfPoint2f pCurrent) {
 
+		CameraParams cameraParams = new CameraParams();
 		Mat old_gray = prevFrame;
 
 		Mat frame_gray = this.image;
@@ -768,6 +785,13 @@ public class ImageData {
 			// if match was found, generate correspondence and pass points along to updated
 			// lists
 			if (StatusArr[i] == 1) {
+
+				// throw out point if it hits the edge of the screen
+				if (pCurrentArr[i].x == 0 || pCurrentArr[i].x == cameraParams.width || pCurrentArr[i].y == 0
+						|| pCurrentArr[i].y == cameraParams.height) {
+					continue;
+				}
+
 				Correspondence2D2D c = new Correspondence2D2D();
 				c.setX0(pInitialArr[i].x);
 				c.setY0(pInitialArr[i].y);

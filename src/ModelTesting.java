@@ -176,22 +176,19 @@ public class ModelTesting {
 	// return label indicating whether or not the correspondences would be good for
 	// a fundamental matrix estimate (1 is good for fundamental matrix, 0 is not)
 	public static int getLabelFundamental(FinalizedData fd) {
-		return fd.totalReconstErrorEstFun / fd.summary.numCorrespondences < 0.04 && fd.transChordalEstFun < 0.04 ? 1
-				: 0;
+		return fd.medianReconstErrorEstFun < 1 && fd.transChordalEstFun < 0.7 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// a homography estimate (1 is good for homography, 0 is not)
 	public static int getLabelHomography(FinalizedData fd) {
-		return fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences < 0.04
-				&& fd.transChordalEstHomography < 0.04 ? 1 : 0;
+		return fd.medianReconstErrorEstHomography < 1 && fd.transChordalEstHomography < 0.7 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// an essential matrix estimate (1 is good for essential matrix, 0 is not)
 	public static int getLabelEssential(FinalizedData fd) {
-		return fd.totalReconstErrorEstEssential / fd.summary.numCorrespondences < 0.04
-				&& fd.transChordalEstEssential < 0.04 ? 1 : 0;
+		return fd.medianReconstErrorEstEssential < 1 && fd.transChordalEstEssential < 0.7 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences come from a pure
@@ -202,11 +199,11 @@ public class ModelTesting {
 
 	public static void generateTrainingData() {
 
-//		long seed = System.currentTimeMillis();
+		long seed = System.currentTimeMillis();
 
-		long seed = 1615348975802L;
+//		long seed = 1615348975802L;
 
-		String OUT_FILE = "results/data/testing-" + System.currentTimeMillis() + "-" + seed + ".dat";
+		String OUT_FILE = "results/data/test-rev1-" + System.currentTimeMillis() + "-" + seed + ".dat";
 		String serializedData = "";
 		Random rand = new Random(seed);
 
@@ -217,11 +214,12 @@ public class ModelTesting {
 
 		// high-parallax
 		int highParallaxIterations = 1000;
-		double maxBaseline = 0.4;
+		double maxBaseline = 2.5;
 		double rotRange = 0.25;
 		double rotOffset = rotRange / 2;
 		VirtualEnvironment hpMock = new VirtualEnvironment();
-		hpMock.generateSphericalScene(seed, 1000);
+//		hpMock.generateSphericalScene(seed, 1000);
+		hpMock.generateScene0(seed);
 
 		for (int i = 0; i < highParallaxIterations; i++) {
 
@@ -280,7 +278,7 @@ public class ModelTesting {
 
 				serializedData += fd.stringify();
 
-				if (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences > 0.04 || fd.transChordalEstFun > 0.04) {
+				if (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences > 1 || fd.transChordalEstFun > 0.4) {
 					rejects++;
 				} else {
 					accepts++;
@@ -301,7 +299,7 @@ public class ModelTesting {
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
 		int planarIterations = 1000;
-		maxBaseline = 0.4;
+		maxBaseline = 2.5;
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment parallelMock = new VirtualEnvironment();
@@ -364,8 +362,8 @@ public class ModelTesting {
 
 				serializedData += fd.stringify();
 
-				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
-						|| fd.transChordalEstHomography > 0.04) {
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 1
+						|| fd.transChordalEstHomography > 0.4) {
 					rejects++;
 				} else {
 					accepts++;
@@ -392,7 +390,7 @@ public class ModelTesting {
 		rotRange = 0.25;
 		rotOffset = rotRange / 2;
 		VirtualEnvironment hpRotationMock = new VirtualEnvironment();
-		hpRotationMock.generateSphericalScene(seed, 1000);
+		hpRotationMock.generateScene0(seed);
 
 		for (int i = 0; i < hpRotationIterations; i++) {
 
@@ -439,8 +437,8 @@ public class ModelTesting {
 
 				serializedData += fd.stringify();
 
-				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
-						|| fd.transChordalEstHomography > 0.04 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 1
+						|| fd.transChordalEstHomography > 0.4 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
 					rotationRejects++;
 				} else {
 					rotationAccepts++;
@@ -457,7 +455,7 @@ public class ModelTesting {
 		// pure rotation, noisy plane
 		Utils.pl("");
 		Utils.pl("=====================================================================================");
-		Utils.pl("==========================  HIGH PARALLAX ROTATION SCENE  ===========================");
+		Utils.pl("==========================  PLANAR ROTATION SCENE  ===========================");
 		Utils.pl("=====================================================================================");
 		Utils.pl("");
 		int planarRotationIterations = 1000;
@@ -511,8 +509,8 @@ public class ModelTesting {
 
 				serializedData += fd.stringify();
 
-				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 0.04
-						|| fd.transChordalEstHomography > 0.04 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
+				if (fd.totalReconstErrorEstHomography / fd.summary.numCorrespondences > 1
+						|| fd.transChordalEstHomography > 0.4 || Double.isNaN(fd.totalReconstErrorEstHomography)) {
 					rotationRejects++;
 				} else {
 					rotationAccepts++;

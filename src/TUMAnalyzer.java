@@ -190,14 +190,14 @@ public class TUMAnalyzer {
 //				valueListEss[chartIndex] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
 
 				// median reconstruction errors
-//				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
-//				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
-//				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
+				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
+				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
+				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
 
 				// translational chordal distance
-				valueListFun[chartIndex] = sample.transChordalEstFun;
-				valueListHom[chartIndex] = sample.transChordalEstHomography;
-				valueListEss[chartIndex] = sample.transChordalEstEssential;
+//				valueListFun[chartIndex] = sample.transChordalEstFun;
+//				valueListHom[chartIndex] = sample.transChordalEstHomography;
+//				valueListEss[chartIndex] = sample.transChordalEstEssential;
 
 				chartIndex++;
 
@@ -211,8 +211,8 @@ public class TUMAnalyzer {
 			// Rescaled Median Reconstruction Error
 			// Normalized Translational Chordal Distance
 			final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-					.title("Translation Error for TUM STF (No BA)").xAxisTitle("Frame Number")
-					.yAxisTitle("Normalized Translational Chordal Distance").build();
+					.title("Reconstruction Error for TUM STF (No BA)").xAxisTitle("Frame Number")
+					.yAxisTitle("Rescaled Median Reconstruction Error").build();
 
 			// Customize Chart
 			chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
@@ -222,7 +222,7 @@ public class TUMAnalyzer {
 			chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
 			chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
 //					chart.addSeries("Tomono score", indexList, valueListTomono);
-//			chart.getStyler().setYAxisMax(10.0);
+			chart.getStyler().setYAxisMax(10.0);
 
 			// Show it
 			new SwingWrapper(chart).displayChart();
