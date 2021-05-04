@@ -1,3 +1,4 @@
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +24,6 @@ public class TUMAnalyzer {
 	public static CameraParams cameraParams = new CameraParams();
 
 	public static void generateTestData(String tumFilePath, int batchSize) {
-
-		String OUT_FILE = "results/data/TUM_samples_" + batchSize + ".dat";
 
 		// initialize output data string
 		String output = "";
@@ -54,15 +53,21 @@ public class TUMAnalyzer {
 
 		}
 
-		int numIterations = (batchSize - 1) * (batches.size() - 1) + (batches.get(batches.size() - 1).size() - 1);
+		int BATCH_START = 0;
+		int BATCH_END = batches.size() - 0;
+
+		String OUT_FILE = "results/data/TUM_samples_stf_2_" + batchSize + ".dat";
+
+		int numIterations = (batchSize - 1) * (BATCH_END - BATCH_START - 1) + (batches.get(BATCH_END - 1).size() - 1);
 		double[] indexList = new double[numIterations];
 		double[] valueListFun = new double[numIterations];
 		double[] valueListHom = new double[numIterations];
 		double[] valueListEss = new double[numIterations];
+		double[] valueListBase = new double[numIterations];
 		int chartIndex = 0;
 
 		// for each batch,
-		for (int i = 0; i < batches.size(); i++) {
+		for (int i = BATCH_START; i < BATCH_END; i++) {
 			// // get orb features of first frame
 			ImageData imgData0 = new ImageData(batches.get(i).get(0).getProcessedFrame());
 			MatOfPoint2f pInitial = imgData0.GFTT(1000);
@@ -134,6 +139,9 @@ public class TUMAnalyzer {
 				pose1.getHomogeneousMatrix().print(10, 5);
 				Pose poseDiff = Utils.getPoseDifference(pose0, pose1);
 				Utils.pl("poseDiff:");
+				Utils.pl("rotXDeg: " + poseDiff.getRotXDeg());
+				Utils.pl("rotYDeg: " + poseDiff.getRotYDeg());
+				Utils.pl("rotZDeg: " + poseDiff.getRotZDeg());
 				poseDiff.getHomogeneousMatrix().print(10, 5);
 				double baselineLength = Math.sqrt(
 						Math.pow(poseDiff.getCx(), 2) + Math.pow(poseDiff.getCy(), 2) + Math.pow(poseDiff.getCz(), 2));
@@ -161,6 +169,9 @@ public class TUMAnalyzer {
 
 				Utils.pl("fun mat pose estimate: ");
 				sample.poseEstFun.print(10, 5);
+
+				Utils.pl("homography pose estimate: ");
+				sample.poseEstHomography.print(10, 5);
 
 				Utils.pl("avg reconstruction error (fundamental): "
 						+ (fd.totalReconstErrorEstFun / fd.summary.numCorrespondences));
@@ -190,14 +201,16 @@ public class TUMAnalyzer {
 //				valueListEss[chartIndex] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
 
 				// median reconstruction errors
-				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
-				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
-				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
+//				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
+//				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
+//				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
 
 				// translational chordal distance
-//				valueListFun[chartIndex] = sample.transChordalEstFun;
-//				valueListHom[chartIndex] = sample.transChordalEstHomography;
-//				valueListEss[chartIndex] = sample.transChordalEstEssential;
+				valueListFun[chartIndex] = sample.transChordalEstFun;
+				valueListHom[chartIndex] = sample.transChordalEstHomography;
+				valueListEss[chartIndex] = sample.transChordalEstEssential;
+
+				valueListBase[chartIndex] = baselineLength;
 
 				chartIndex++;
 
@@ -211,8 +224,8 @@ public class TUMAnalyzer {
 			// Rescaled Median Reconstruction Error
 			// Normalized Translational Chordal Distance
 			final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-					.title("Reconstruction Error for TUM STF (No BA)").xAxisTitle("Frame Number")
-					.yAxisTitle("Rescaled Median Reconstruction Error").build();
+					.title("Error for TUM STF (No BA)").xAxisTitle("Frame Number")
+					.yAxisTitle("Normalized Translational Chordal Distance").build();
 
 			// Customize Chart
 			chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
@@ -221,8 +234,9 @@ public class TUMAnalyzer {
 			chart.addSeries("Fundamental Matrix Estimate (8PA)", indexList, valueListFun);
 			chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
 			chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
+			chart.addSeries("Baseline Length", indexList, valueListBase);
 //					chart.addSeries("Tomono score", indexList, valueListTomono);
-			chart.getStyler().setYAxisMax(10.0);
+//			chart.getStyler().setYAxisMax(10.0);
 
 			// Show it
 			new SwingWrapper(chart).displayChart();
@@ -232,9 +246,9 @@ public class TUMAnalyzer {
 		// save output string
 		try {
 
-//			FileWriter fw = new FileWriter(OUT_FILE);
-//			fw.write(output);
-//			fw.close();
+			FileWriter fw = new FileWriter(OUT_FILE);
+			fw.write(output);
+			fw.close();
 
 		} catch (Exception e) {
 

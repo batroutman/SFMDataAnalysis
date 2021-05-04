@@ -732,7 +732,7 @@ public class ImageData {
 
 	public MatOfPoint2f GFTT(int NUM_FEATURES) {
 		MatOfPoint p0MatofPoint = new MatOfPoint();
-		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.01, 10, new Mat(), 7, false, 0.04);
+		Imgproc.goodFeaturesToTrack(this.image, p0MatofPoint, NUM_FEATURES, 0.01, 20, new Mat(), 7, false, 0.04);
 		MatOfPoint2f p0 = new MatOfPoint2f(p0MatofPoint.toArray());
 
 		// filter out points close to image edge
@@ -755,6 +755,8 @@ public class ImageData {
 
 	public List<Correspondence2D2D> calcOpticalFlow(Mat prevFrame, MatOfPoint2f pInitial, MatOfPoint2f pPrev,
 			MatOfPoint2f pCurrent) {
+
+		int MARGIN = 25;
 
 		CameraParams cameraParams = new CameraParams();
 		Mat old_gray = prevFrame;
@@ -787,8 +789,8 @@ public class ImageData {
 			if (StatusArr[i] == 1) {
 
 				// throw out point if it hits the edge of the screen
-				if (pCurrentArr[i].x == 0 || pCurrentArr[i].x == cameraParams.width || pCurrentArr[i].y == 0
-						|| pCurrentArr[i].y == cameraParams.height) {
+				if (pCurrentArr[i].x <= MARGIN || pCurrentArr[i].x >= cameraParams.width - MARGIN
+						|| pCurrentArr[i].y <= MARGIN || pCurrentArr[i].y >= cameraParams.height - MARGIN) {
 					continue;
 				}
 

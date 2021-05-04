@@ -45,8 +45,8 @@ public class ModelTesting {
 		SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss");
 		Date date = new Date();
 
-		String MODELS_PATH = "results/models/";
-		String MODEL_FILE_NAME = "logreg_" + mode.name() + "_" + formatter.format(date);
+		String MODELS_PATH = "results/models/stf_train/";
+		String MODEL_FILE_NAME = "logreg_real_" + mode.name() + "_" + formatter.format(date);
 
 		// load training data
 		List<FinalizedData> pretrain = loadData(trainingFilename);
@@ -176,25 +176,25 @@ public class ModelTesting {
 	// return label indicating whether or not the correspondences would be good for
 	// a fundamental matrix estimate (1 is good for fundamental matrix, 0 is not)
 	public static int getLabelFundamental(FinalizedData fd) {
-		return fd.medianReconstErrorEstFun < 1 && fd.transChordalEstFun < 0.7 ? 1 : 0;
+		return fd.medianReconstErrorEstFun < 1 && fd.transChordalEstFun < 0.8 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// a homography estimate (1 is good for homography, 0 is not)
 	public static int getLabelHomography(FinalizedData fd) {
-		return fd.medianReconstErrorEstHomography < 1 && fd.transChordalEstHomography < 0.7 ? 1 : 0;
+		return fd.medianReconstErrorEstHomography < 1 && fd.transChordalEstHomography < 0.8 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// an essential matrix estimate (1 is good for essential matrix, 0 is not)
 	public static int getLabelEssential(FinalizedData fd) {
-		return fd.medianReconstErrorEstEssential < 1 && fd.transChordalEstEssential < 0.7 ? 1 : 0;
+		return fd.medianReconstErrorEstEssential < 1 && fd.transChordalEstEssential < 0.8 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences come from a pure
 	// rotation (1 is pure rotation, 0 is not)
 	public static int getLabelRotation(FinalizedData fd) {
-		return fd.baseline == 0 ? 1 : 0;
+		return fd.baseline <= 0.05 ? 1 : 0;
 	}
 
 	public static void generateTrainingData() {
@@ -584,13 +584,38 @@ public class ModelTesting {
 
 	public static void testModels() {
 
-		String DATA_FILE = "results/data/TUM_samples_120.dat";
+		String DATA_FILE = "results/data/TUM_samples_stn_30.dat";
 //		String DATA_FILE = "results/data/testing-1617851095921-1615348975802.dat";
 
-		String FUN_MODEL_FILE = "results/models/logreg_FUNDAMENTAL_10-03-2021_13-52-21_rotExcluded-P0.7967-R0.9071-F0.8483.model";
-		String ESS_MODEL_FILE = "results/models/logreg_ESSENTIAL_07-04-2021_23-06-55_rotExcluded-P0.8185-R0.7180-F0.7650.model";
-		String HOM_MODEL_FILE = "results/models/logreg_HOMOGRAPHY_10-03-2021_14-09-03_rotExcluded-P0.9086-R0.9739-F0.9401.model";
-		String ROT_MODEL_FILE = "results/models/logreg_ROTATION_10-03-2021_00-28-44-P0.7786-R0.9090-F0.8388.model";
+		// no-noise data models
+//		String FUN_MODEL_FILE = "results/models/logreg_FUNDAMENTAL_10-03-2021_13-52-21_rotExcluded-P0.7967-R0.9071-F0.8483.model";
+//		String ESS_MODEL_FILE = "results/models/logreg_ESSENTIAL_07-04-2021_23-06-55_rotExcluded-P0.8185-R0.7180-F0.7650.model";
+//		String HOM_MODEL_FILE = "results/models/logreg_HOMOGRAPHY_10-03-2021_14-09-03_rotExcluded-P0.9086-R0.9739-F0.9401.model";
+//		String ROT_MODEL_FILE = "results/models/logreg_ROTATION_10-03-2021_00-28-44-P0.7786-R0.9090-F0.8388.model";
+
+		// noisy data models
+//		String FUN_MODEL_FILE = "results/models/logreg_FUNDAMENTAL_27-04-2021_22-33-25_rotExcluded-P0.6698-R0.4441-F0.5341.model";
+//		String ESS_MODEL_FILE = "results/models/logreg_ESSENTIAL_27-04-2021_22-39-32_rotExcluded-P0.7343-R0.3901-F0.5096.model";
+//		String HOM_MODEL_FILE = "results/models/logreg_HOMOGRAPHY_27-04-2021_22-44-49_rotExcluded-P0.6970-R0.6122-F0.6519.model";
+//		String ROT_MODEL_FILE = "results/models/logreg_ROTATION_27-04-2021_21-59-25-P0.8157-R0.8630-F0.8387.model";
+
+		// stf models
+		String FUN_MODEL_FILE = "results/models/logreg_real_FUNDAMENTAL_28-04-2021_15-30-09-P0.3639-R0.5822-F0.4479.model";
+		String ESS_MODEL_FILE = "results/models/logreg_real_ESSENTIAL_28-04-2021_15-35-38-P0.4290-R0.6453-F0.5154.model";
+		String HOM_MODEL_FILE = "results/models/logreg_real_HOMOGRAPHY_28-04-2021_15-40-33-P0.3725-R0.1166-F0.1776.model";
+		String ROT_MODEL_FILE = "results/models/logreg_real_ROTATION_28-04-2021_15-47-44-P0.8706-R0.7885-F0.8275.model";
+
+//		// stn_2 models
+//		String FUN_MODEL_FILE = "results/models/stn_train/logreg_real_FUNDAMENTAL_03-05-2021_21-40-51-P0.7943-R0.6619-F0.7221.model";
+//		String ESS_MODEL_FILE = "results/models/stn_train/logreg_real_ESSENTIAL_03-05-2021_21-46-13-P0.7371-R0.7155-F0.7261.model";
+//		String HOM_MODEL_FILE = "results/models/stn_train/logreg_real_HOMOGRAPHY_03-05-2021_21-51-32-P0.6512-R0.3944-F0.4912.model";
+//		String ROT_MODEL_FILE = "results/models/stn_train/logreg_real_ROTATION_03-05-2021_21-56-54-P0.8800-R0.8527-F0.8661.model";
+
+//		// stf_2 models
+//		String FUN_MODEL_FILE = "results/models/stf_train/logreg_real_FUNDAMENTAL_04-05-2021_13-05-43-P0.7310-R0.7544-F0.7426.model";
+//		String ESS_MODEL_FILE = "results/models/stf_train/logreg_real_ESSENTIAL_04-05-2021_13-12-13-P0.7452-R0.7175-F0.7311.model";
+//		String HOM_MODEL_FILE = "results/models/stf_train/logreg_real_HOMOGRAPHY_04-05-2021_13-38-36-P0.6479-R0.3966-F0.4920.model";
+//		String ROT_MODEL_FILE = "results/models/stf_train/logreg_real_ROTATION_04-05-2021_13-22-35-P0.9032-R0.6222-F0.7368.model";
 
 		// get the models
 		MultiLayerNetwork modelFun = null;
@@ -624,7 +649,7 @@ public class ModelTesting {
 
 		// chart results
 		final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-				.title("Predictions on First 120 Frames (>0.5 means positive class)").xAxisTitle("Frame Number")
+				.title("Predictions on Batches (>0.5 means positive class)").xAxisTitle("Frame Number")
 				.yAxisTitle("Prediction").build();
 
 		// Customize Chart
@@ -638,6 +663,306 @@ public class ModelTesting {
 
 		// Show it
 		new SwingWrapper(chart).displayChart();
+
+		// evaulate data
+		LabelMaker labelerF = new LabelMaker() {
+			public int getLabel(FinalizedData fd) {
+				return getLabelFundamental(fd);
+			}
+		};
+		LabelMaker labelerE = new LabelMaker() {
+			public int getLabel(FinalizedData fd) {
+				return getLabelEssential(fd);
+			}
+		};
+		LabelMaker labelerH = new LabelMaker() {
+			public int getLabel(FinalizedData fd) {
+				return getLabelHomography(fd);
+			}
+		};
+		LabelMaker labelerR = new LabelMaker() {
+			public int getLabel(FinalizedData fd) {
+				return getLabelRotation(fd);
+			}
+		};
+
+		Utils.pl("+++++++++++++++++++++++++    FUNDAMENTAL    +++++++++++++++++++++++++");
+		evaluateData(DATA_FILE, modelFun, labelerF, false);
+		Utils.pl("+++++++++++++++++++++++++     ESSENTIAL     +++++++++++++++++++++++++");
+		evaluateData(DATA_FILE, modelEss, labelerE, false);
+		Utils.pl("+++++++++++++++++++++++++     HOMOGRAPHY    +++++++++++++++++++++++++");
+		evaluateData(DATA_FILE, modelHom, labelerH, false);
+		Utils.pl("+++++++++++++++++++++++++     ROTATION      +++++++++++++++++++++++++");
+		evaluateData(DATA_FILE, modelRot, labelerR, false);
+
+		Utils.pl("////////////  BUTT  ///////////////");
+		Utils.pl("fundamental: ");
+		evaluateButt(DATA_FILE, MODE.FUNDAMENTAL, labelerF, false);
+		Utils.pl("homography: ");
+		evaluateButt(DATA_FILE, MODE.HOMOGRAPHY, labelerH, false);
+
+		// evaluate models with pure rotation model filter
+		Utils.pl("------------------    FUNDAMENTAL FILTERED    -------------------");
+		evaluateDataFiltered(DATA_FILE, modelFun, modelRot, labelerF, false);
+		Utils.pl("------------------    ESSENTIAL FILTERED    -------------------");
+		evaluateDataFiltered(DATA_FILE, modelEss, modelRot, labelerE, false);
+		Utils.pl("------------------    HOMOGRAPHY FILTERED    -------------------");
+		evaluateDataFiltered(DATA_FILE, modelHom, modelRot, labelerH, false);
+
+	}
+
+	public static void evaluateData(String testingFilename, MultiLayerNetwork model, LabelMaker labeler,
+			boolean excludePureRotation) {
+		// load testing data
+		List<FinalizedData> pretest = loadData(testingFilename);
+		List<FinalizedData> test = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretest.size(); i++) {
+			if (!excludePureRotation || pretest.get(i).baseline > 0) {
+				test.add(pretest.get(i));
+			}
+		}
+
+		// generate test labels
+		INDArray testLabels = Nd4j.zeros(test.size(), 1);
+		for (int i = 0; i < test.size(); i++) {
+			testLabels.putScalar(new int[] { i, 0 }, labeler.getLabel(test.get(i)));
+		}
+
+		// create input array (normalize data)
+		INDArray testInput = Nd4j.zeros(test.size(), 23);
+		for (int i = 0; i < test.size(); i++) {
+			INDArray row = Nd4j.create(test.get(i).summary.getArray());
+			testInput.putRow(i, row);
+		}
+
+		// set up test data
+		DataSet testData = new DataSet(testInput, testLabels);
+
+		// create output for every training sample
+		INDArray output = model.output(testData.getFeatures());
+//		System.out.println(output);
+
+		// let Evaluation prints stats how often the right output had the highest value
+		Evaluation eval = new Evaluation();
+		eval.eval(testData.getLabels(), output);
+		System.out.println(eval.stats());
+	}
+
+	public static void evaluateDataManual(String testingFilename, MultiLayerNetwork model, LabelMaker labeler,
+			boolean excludePureRotation) {
+		// load testing data
+		List<FinalizedData> pretest = loadData(testingFilename);
+		List<FinalizedData> test = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretest.size(); i++) {
+			if (!excludePureRotation || pretest.get(i).baseline > 0) {
+				test.add(pretest.get(i));
+			}
+		}
+
+		// generate test labels
+		INDArray testLabels = Nd4j.zeros(test.size(), 1);
+		for (int i = 0; i < test.size(); i++) {
+			testLabels.putScalar(new int[] { i, 0 }, labeler.getLabel(test.get(i)));
+		}
+
+		// create input array (normalize data)
+		INDArray testInput = Nd4j.zeros(test.size(), 23);
+		for (int i = 0; i < test.size(); i++) {
+			INDArray row = Nd4j.create(test.get(i).summary.getArray());
+			testInput.putRow(i, row);
+		}
+
+		// set up test data
+		DataSet testData = new DataSet(testInput, testLabels);
+
+		// create output for every training sample
+		INDArray output = model.output(testData.getFeatures());
+//		System.out.println(output);
+
+		// let Evaluation prints stats how often the right output had the highest value
+//		Evaluation eval = new Evaluation();
+//		eval.eval(testData.getLabels(), output);
+//		System.out.println(eval.stats());
+		double tp = 0;
+		double tn = 0;
+		double fp = 0;
+		double fn = 0;
+
+		for (int i = 0; i < output.rows(); i++) {
+			int predicted = (int) Math.round(output.getDouble(i));
+			int actual = (int) testData.getLabels().getDouble(i);
+
+			if (predicted == actual) {
+				if (predicted == 1) {
+					tp++;
+				} else {
+					tn++;
+				}
+			} else {
+				if (predicted == 1) {
+					fp++;
+				} else {
+					fn++;
+				}
+			}
+		}
+
+		Utils.pl("tp: " + tp);
+		Utils.pl("tn: " + tn);
+		Utils.pl("fp: " + fp);
+		Utils.pl("fn: " + fn);
+
+		double accuracy = (tp + tn) / (tp + tn + fp + fn);
+		double precision = (tp + fp) == 0 ? 0 : tp / (tp + fp);
+		double recall = (tp + fn) == 0 ? 0 : tp / (tp + fn);
+		double f1 = (tp + 0.5 * (fp + fn)) == 0 ? 0 : tp / (tp + 0.5 * (fp + fn));
+
+		Utils.pl("Accuracy: " + accuracy);
+		Utils.pl("Precision: " + precision);
+		Utils.pl("Recall: " + recall);
+		Utils.pl("F1: " + f1);
+
+	}
+
+	public static void evaluateDataFiltered(String testingFilename, MultiLayerNetwork model, MultiLayerNetwork rotModel,
+			LabelMaker labeler, boolean excludePureRotation) {
+		// load testing data
+		List<FinalizedData> pretest = loadData(testingFilename);
+		List<FinalizedData> test = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretest.size(); i++) {
+			if (!excludePureRotation || pretest.get(i).baseline > 0) {
+				test.add(pretest.get(i));
+			}
+		}
+
+		// generate test labels
+		INDArray testLabels = Nd4j.zeros(test.size(), 1);
+		for (int i = 0; i < test.size(); i++) {
+			testLabels.putScalar(new int[] { i, 0 }, labeler.getLabel(test.get(i)));
+		}
+
+		// create input array (normalize data)
+		INDArray testInput = Nd4j.zeros(test.size(), 23);
+		for (int i = 0; i < test.size(); i++) {
+			INDArray row = Nd4j.create(test.get(i).summary.getArray());
+			testInput.putRow(i, row);
+		}
+
+		// set up test data
+		DataSet testData = new DataSet(testInput, testLabels);
+
+		// create output for every test sample
+		INDArray output = model.output(testData.getFeatures());
+		INDArray rotOutput = rotModel.output(testData.getFeatures());
+//		System.out.println(output);
+
+		// let Evaluation prints stats how often the right output had the highest value
+//		Evaluation eval = new Evaluation();
+//		eval.eval(testData.getLabels(), output);
+//		System.out.println(eval.stats());
+		double tp = 0;
+		double tn = 0;
+		double fp = 0;
+		double fn = 0;
+
+		for (int i = 0; i < output.rows(); i++) {
+			int predRot = (int) Math.round(rotOutput.getDouble(i));
+			int predicted = predRot == 0 ? (int) Math.round(output.getDouble(i)) : 0;
+			int actual = (int) testData.getLabels().getDouble(i);
+
+			if (predicted == actual) {
+				if (predicted == 1) {
+					tp++;
+				} else {
+					tn++;
+				}
+			} else {
+				if (predicted == 1) {
+					fp++;
+				} else {
+					fn++;
+				}
+			}
+		}
+
+		Utils.pl("tp: " + tp);
+		Utils.pl("tn: " + tn);
+		Utils.pl("fp: " + fp);
+		Utils.pl("fn: " + fn);
+
+		double accuracy = (tp + tn) / (tp + tn + fp + fn);
+		double precision = (tp + fp) == 0 ? 0 : tp / (tp + fp);
+		double recall = (tp + fn) == 0 ? 0 : tp / (tp + fn);
+		double f1 = (tp + 0.5 * (fp + fn)) == 0 ? 0 : tp / (tp + 0.5 * (fp + fn));
+
+		Utils.pl("Accuracy: " + accuracy);
+		Utils.pl("Precision: " + precision);
+		Utils.pl("Recall: " + recall);
+		Utils.pl("F1: " + f1);
+
+	}
+
+	public static void evaluateButt(String testingFilename, MODE mode, LabelMaker labeler,
+			boolean excludePureRotation) {
+
+		// load testing data
+		List<FinalizedData> pretest = loadData(testingFilename);
+		List<FinalizedData> test = new ArrayList<FinalizedData>();
+		for (int i = 0; i < pretest.size(); i++) {
+			if (!excludePureRotation || pretest.get(i).baseline > 0) {
+				test.add(pretest.get(i));
+			}
+		}
+
+		// generate test labels
+		INDArray testLabels = Nd4j.zeros(test.size(), 1);
+		for (int i = 0; i < test.size(); i++) {
+			testLabels.putScalar(new int[] { i, 0 }, labeler.getLabel(test.get(i)));
+		}
+
+		double tp = 0;
+		double tn = 0;
+		double fp = 0;
+		double fn = 0;
+
+		for (int i = 0; i < test.size(); i++) {
+			int predicted = test.get(i).summary.meanDisparity > 50 ? 1 : 0;
+			int actual = (int) testLabels.getDouble(i);
+
+			if (mode == MODE.FUNDAMENTAL && predicted == 1) {
+				predicted = test.get(i).summary.stdDevDisparity > 15 ? 1 : 0;
+			}
+
+			if (predicted == actual) {
+				if (predicted == 1) {
+					tp++;
+				} else {
+					tn++;
+				}
+			} else {
+				if (predicted == 1) {
+					fp++;
+				} else {
+					fn++;
+				}
+			}
+		}
+
+		Utils.pl("tp: " + tp);
+		Utils.pl("tn: " + tn);
+		Utils.pl("fp: " + fp);
+		Utils.pl("fn: " + fn);
+
+		double accuracy = (tp + tn) / (tp + tn + fp + fn);
+		double precision = (tp + fp) == 0 ? 0 : tp / (tp + fp);
+		double recall = (tp + fn) == 0 ? 0 : tp / (tp + fn);
+		double f1 = (tp + 0.5 * (fp + fn)) == 0 ? 0 : tp / (tp + 0.5 * (fp + fn));
+
+		Utils.pl("Accuracy: " + accuracy);
+		Utils.pl("Precision: " + precision);
+		Utils.pl("Recall: " + recall);
+		Utils.pl("F1: " + f1);
+
 	}
 
 	public static double[] getPredictions(MultiLayerNetwork model, List<FinalizedData> data) {
