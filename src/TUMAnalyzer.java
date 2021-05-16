@@ -1,5 +1,5 @@
-import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.knowm.xchart.SwingWrapper;
@@ -201,14 +201,14 @@ public class TUMAnalyzer {
 //				valueListEss[chartIndex] = sample.totalReconstErrorEstEssential / sample.truePoints.size();
 
 				// median reconstruction errors
-//				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
-//				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
-//				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
+				valueListFun[chartIndex] = sample.medianReconstErrorEstFun;
+				valueListHom[chartIndex] = sample.medianReconstErrorEstHomography;
+				valueListEss[chartIndex] = sample.medianReconstErrorEstEssential;
 
 				// translational chordal distance
-				valueListFun[chartIndex] = sample.transChordalEstFun;
-				valueListHom[chartIndex] = sample.transChordalEstHomography;
-				valueListEss[chartIndex] = sample.transChordalEstEssential;
+//				valueListFun[chartIndex] = sample.transChordalEstFun;
+//				valueListHom[chartIndex] = sample.transChordalEstHomography;
+//				valueListEss[chartIndex] = sample.transChordalEstEssential;
 
 				valueListBase[chartIndex] = baselineLength;
 
@@ -220,23 +220,36 @@ public class TUMAnalyzer {
 
 		boolean plot = true;
 		if (plot) {
+
+//			int START = 0;
+//			int END = numIterations;
+			int START = (batchSize - 1) * 1;
+			int END = START + (batchSize - 1);
+
+			// slice data
+			double[] indexListSliced = Arrays.copyOfRange(indexList, START, END);
+			double[] valueListFunSliced = Arrays.copyOfRange(valueListFun, START, END);
+			double[] valueListHomSliced = Arrays.copyOfRange(valueListHom, START, END);
+			double[] valueListEssSliced = Arrays.copyOfRange(valueListEss, START, END);
+			double[] valueListBaseSliced = Arrays.copyOfRange(valueListBase, START, END);
+
 			// Create Chart
 			// Rescaled Median Reconstruction Error
 			// Normalized Translational Chordal Distance
 			final XYChart chart = new XYChartBuilder().width(640).height(480).theme(Styler.ChartTheme.Matlab)
-					.title("Error for TUM STF (No BA)").xAxisTitle("Frame Number")
-					.yAxisTitle("Normalized Translational Chordal Distance").build();
+					.title("Reconstruction Error on a Typical Batch of Training Data").xAxisTitle("Baseline Length")
+					.yAxisTitle("Median Scaled Reconstruction Error").build();
 
 			// Customize Chart
 			chart.getStyler().setLegendPosition(LegendPosition.InsideNE);
 
 			// Series
-			chart.addSeries("Fundamental Matrix Estimate (8PA)", indexList, valueListFun);
-			chart.addSeries("Homography Estimate (4PA)", indexList, valueListHom);
-			chart.addSeries("Essential Matrix Estimate (5PA)", indexList, valueListEss);
-			chart.addSeries("Baseline Length", indexList, valueListBase);
+			chart.addSeries("Fundamental Matrix Estimate (8PA)", valueListBaseSliced, valueListFunSliced);
+			chart.addSeries("Homography Estimate (4PA)", valueListBaseSliced, valueListHomSliced);
+			chart.addSeries("Essential Matrix Estimate (5PA)", valueListBaseSliced, valueListEssSliced);
+//			chart.addSeries("Baseline Length", indexListSliced, valueListBaseSliced);
 //					chart.addSeries("Tomono score", indexList, valueListTomono);
-//			chart.getStyler().setYAxisMax(10.0);
+			chart.getStyler().setYAxisMax(10.0);
 
 			// Show it
 			new SwingWrapper(chart).displayChart();
@@ -246,9 +259,9 @@ public class TUMAnalyzer {
 		// save output string
 		try {
 
-			FileWriter fw = new FileWriter(OUT_FILE);
-			fw.write(output);
-			fw.close();
+//			FileWriter fw = new FileWriter(OUT_FILE);
+//			fw.write(output);
+//			fw.close();
 
 		} catch (Exception e) {
 

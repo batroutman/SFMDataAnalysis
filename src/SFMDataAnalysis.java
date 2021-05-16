@@ -41,12 +41,12 @@ public class SFMDataAnalysis {
 //		ModelTesting.generateTrainingData();
 
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 30);
-//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
+		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 90);
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_checkerboard_large", 90);
 //		test4();
 //		Tests.testOpticalFlow();
-		ModelTesting.testModels();
+//		ModelTesting.testModels();
 	}
 
 	public static void test6() {
