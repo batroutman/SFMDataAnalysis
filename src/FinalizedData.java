@@ -21,6 +21,14 @@ public class FinalizedData {
 	// other ground truth data
 	public double baseline = 0;
 
+	// robust reconstruction criteria
+	public double funNumGood = 0;
+	public double funNumParallax = 0;
+	public double essNumGood = 0;
+	public double essNumParallax = 0;
+	public double homNumGood = 0;
+	public double homNumParallax = 0;
+
 	public FinalizedData() {
 
 	}
@@ -32,7 +40,8 @@ public class FinalizedData {
 				+ this.totalReconstErrorEstEssential + "," + this.medianReconstErrorEstFun + ","
 				+ this.medianReconstErrorEstHomography + "," + this.medianReconstErrorEstEssential + ","
 				+ this.transChordalEstFun + "," + this.transChordalEstHomography + "," + this.transChordalEstEssential
-				+ "," + this.baseline + "\n";
+				+ "," + this.baseline + "," + this.funNumGood + "," + this.funNumParallax + "," + this.essNumGood + ","
+				+ this.essNumParallax + "," + this.homNumGood + "," + this.homNumParallax + "\n";
 
 		return output;
 	}
@@ -53,6 +62,13 @@ public class FinalizedData {
 		fd.transChordalEstHomography = Double.parseDouble(errors[7]);
 		fd.transChordalEstEssential = Double.parseDouble(errors[8]);
 		fd.baseline = Double.parseDouble(errors[9]);
+
+		fd.funNumGood = Double.parseDouble(errors[10]);
+		fd.funNumParallax = Double.parseDouble(errors[11]);
+		fd.essNumGood = Double.parseDouble(errors[12]);
+		fd.essNumParallax = Double.parseDouble(errors[13]);
+		fd.homNumGood = Double.parseDouble(errors[14]);
+		fd.homNumParallax = Double.parseDouble(errors[15]);
 
 		return fd;
 	}

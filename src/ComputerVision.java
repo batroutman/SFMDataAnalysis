@@ -358,6 +358,72 @@ public class ComputerVision {
 		return X;
 	}
 
+	public static Matrix triangulate(Matrix secondaryPose, Matrix primaryPose, CameraParams cameraParams,
+			Correspondence2D2D c, Dbl parallax, Dbl reprojErrorSecondary, Dbl reprojErrorPrimary, Dbl wSecondary,
+			Dbl wPrimary) {
+
+//		Matrix Pprime = E.times(pose);
+		Matrix Pprime = cameraParams.getK4x4().times(secondaryPose);
+
+		Matrix P = cameraParams.getK4x4().times(primaryPose);
+
+		// compute A matrix for Ax = 0
+		Matrix row0 = P.getMatrix(2, 2, 0, 3).times(c.getX0()).minus(P.getMatrix(0, 0, 0, 3));
+		Matrix row1 = P.getMatrix(2, 2, 0, 3).times(c.getY0()).minus(P.getMatrix(1, 1, 0, 3));
+		Matrix row2 = Pprime.getMatrix(2, 2, 0, 3).times(c.getX1()).minus(Pprime.getMatrix(0, 0, 0, 3));
+		Matrix row3 = Pprime.getMatrix(2, 2, 0, 3).times(c.getY1()).minus(Pprime.getMatrix(1, 1, 0, 3));
+
+		Matrix A = new Matrix(4, 4);
+		A.setMatrix(0, 0, 0, 3, row0);
+		A.setMatrix(1, 1, 0, 3, row1);
+		A.setMatrix(2, 2, 0, 3, row2);
+		A.setMatrix(3, 3, 0, 3, row3);
+
+		SingularValueDecomposition svd = A.svd();
+		Matrix X = svd.getV().getMatrix(0, 3, 3, 3);
+		X = X.times(1.0 / X.get(3, 0));
+		// System.out.println("X");
+		// X.print(5, 4);
+
+		// set parallax
+		Matrix u = X.getMatrix(0, 2, 0, 0).minus(
+				primaryPose.getMatrix(0, 2, 0, 2).transpose().times(primaryPose.getMatrix(0, 2, 3, 3).times(-1)));
+		Matrix v = X.getMatrix(0, 2, 0, 0).minus(
+				secondaryPose.getMatrix(0, 2, 0, 2).transpose().times(secondaryPose.getMatrix(0, 2, 3, 3).times(-1)));
+		double cosParallax = u.transpose().times(v).get(0, 0) / (u.normF() * v.normF());
+
+		double parallaxDegrees = Math.acos(cosParallax) * 180 / Math.PI;
+
+		parallax.setValue(parallaxDegrees);
+
+		// get reprojection errors
+		Matrix p0 = new Matrix(4, 1);
+		p0.set(0, 0, c.getX0());
+		p0.set(1, 0, c.getY0());
+		p0.set(2, 0, 1);
+		p0.set(3, 0, 0);
+		Matrix p1 = new Matrix(4, 1);
+		p1.set(0, 0, c.getX1());
+		p1.set(1, 0, c.getY1());
+		p1.set(2, 0, 1);
+		p1.set(3, 0, 0);
+
+		Matrix proj0 = P.times(X);
+		wPrimary.setValue(proj0.get(2, 0));
+		proj0 = proj0.times(1 / proj0.get(2, 0));
+		double reproj0 = p0.minus(proj0).normF();
+
+		Matrix proj1 = Pprime.times(X);
+		wSecondary.setValue(proj1.get(2, 0));
+		proj1 = proj1.times(1 / proj1.get(2, 0));
+		double reproj1 = p1.minus(proj1).normF();
+
+		reprojErrorPrimary.setValue(reproj0);
+		reprojErrorSecondary.setValue(reproj1);
+
+		return X;
+	}
+
 	public static Matrix estimateFundamentalMatrix(List<Correspondence2D2D> correspondences) {
 
 		CameraParams params = new CameraParams();
@@ -634,6 +700,60 @@ public class ComputerVision {
 		}
 
 		return totalError;
+
+	}
+
+	public static void parallaxAndGoodPoints(Matrix primaryPose, Matrix secondaryPose, CameraParams cameraParams,
+			List<Matrix> triangulatedPoints, List<Correspondence2D2D> correspondences, Dbl parallax,
+			Dbl numGoodPoints) {
+
+		double parallaxRequirement = 3.0;
+		double reprojectionRequirement = 20;
+		int numGoodParallax = 0;
+		int numGood = 0;
+
+		for (int i = 0; i < triangulatedPoints.size(); i++) {
+			Correspondence2D2D c = correspondences.get(i);
+			Matrix X = triangulatedPoints.get(i);
+
+			// get parallax
+			Matrix u = X.getMatrix(0, 2, 0, 0).minus(
+					primaryPose.getMatrix(0, 2, 0, 2).transpose().times(primaryPose.getMatrix(0, 2, 3, 3).times(-1)));
+			Matrix v = X.getMatrix(0, 2, 0, 0).minus(secondaryPose.getMatrix(0, 2, 0, 2).transpose()
+					.times(secondaryPose.getMatrix(0, 2, 3, 3).times(-1)));
+			double cosParallax = u.transpose().times(v).get(0, 0) / (u.normF() * v.normF());
+			double parallaxDegrees = Math.acos(cosParallax) * 180 / Math.PI;
+
+			numGoodParallax += parallaxDegrees > parallaxRequirement ? 1 : 0;
+
+			// get reprojection errors
+			Matrix p0 = new Matrix(3, 1);
+			p0.set(0, 0, c.getX0());
+			p0.set(1, 0, c.getY0());
+			p0.set(2, 0, 1);
+			Matrix p1 = new Matrix(3, 1);
+			p1.set(0, 0, c.getX1());
+			p1.set(1, 0, c.getY1());
+			p1.set(2, 0, 1);
+
+			Matrix proj0 = cameraParams.getK4x4().times(primaryPose).times(X);
+			double wPrimary = proj0.get(2, 0);
+			proj0 = proj0.times(1 / wPrimary);
+			double reproj0 = p0.minus(proj0.getMatrix(0, 2, 0, 0)).normF();
+
+			Matrix proj1 = cameraParams.getK4x4().times(secondaryPose).times(X);
+			double wSecondary = proj1.get(2, 0);
+			proj1 = proj1.times(1 / wSecondary);
+			double reproj1 = p1.minus(proj1.getMatrix(0, 2, 0, 0)).normF();
+
+			// check if good point
+			numGood += wPrimary > 0 && wSecondary > 0 && reproj0 < reprojectionRequirement
+					&& reproj1 < reprojectionRequirement ? 1 : 0;
+
+		}
+
+		parallax.setValue(numGoodParallax);
+		numGoodPoints.setValue(numGood);
 
 	}
 

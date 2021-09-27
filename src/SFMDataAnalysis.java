@@ -36,17 +36,17 @@ public class SFMDataAnalysis {
 //		ModelTesting.generateTrainingData();
 //		test5();
 //		List<FinalizedData> data = loadData("results/data/train-1614974242961.dat");
-//		ModelTesting.trainModelFromScratch("results/data/TUM_samples_stf_90.dat",
-//				"results/data/TUM_samples_stn_2_30.dat", ModelTesting.MODE.HOMOGRAPHY, false);
+//		ModelTesting.trainModelFromScratch("results/data/TUM_samples_stf_3_90.dat",
+//				"results/data/TUM_samples_stn_3_30.dat", ModelTesting.MODE.HOMOGRAPHY, false);
 //		ModelTesting.generateTrainingData();
 
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_near", 30);
-		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90);
+//		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_structure_texture_far", 90); //
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_long_office_household", 90);
 //		TUMAnalyzer.generateTestData("../datasets/rgbd_dataset_freiburg3_checkerboard_large", 90);
 //		test4();
 //		Tests.testOpticalFlow();
-//		ModelTesting.testModels();
+		ModelTesting.testModels();
 	}
 
 	public static void test6() {

@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -45,7 +46,7 @@ public class ModelTesting {
 		SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss");
 		Date date = new Date();
 
-		String MODELS_PATH = "results/models/stf_train/";
+		String MODELS_PATH = "results/models/updated_models_sept_15/";
 		String MODEL_FILE_NAME = "logreg_real_" + mode.name() + "_" + formatter.format(date);
 
 		// load training data
@@ -71,6 +72,7 @@ public class ModelTesting {
 			labeler = new LabelMaker() {
 				public int getLabel(FinalizedData fd) {
 					return getLabelEssential(fd);
+
 				}
 			};
 		} else if (mode == MODE.HOMOGRAPHY) {
@@ -78,6 +80,7 @@ public class ModelTesting {
 			labeler = new LabelMaker() {
 				public int getLabel(FinalizedData fd) {
 					return getLabelHomography(fd);
+
 				}
 			};
 		} else if (mode == MODE.ROTATION) {
@@ -177,18 +180,21 @@ public class ModelTesting {
 	// a fundamental matrix estimate (1 is good for fundamental matrix, 0 is not)
 	public static int getLabelFundamental(FinalizedData fd) {
 		return fd.medianReconstErrorEstFun < 1 && fd.transChordalEstFun < 0.8 ? 1 : 0;
+//		return fd.funNumGood / fd.summary.numCorrespondences > 0.9 && fd.funNumParallax > 50 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// a homography estimate (1 is good for homography, 0 is not)
 	public static int getLabelHomography(FinalizedData fd) {
 		return fd.medianReconstErrorEstHomography < 1 && fd.transChordalEstHomography < 0.8 ? 1 : 0;
+//		return fd.homNumGood / fd.summary.numCorrespondences > 0.9 && fd.homNumParallax > 50 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences would be good for
 	// an essential matrix estimate (1 is good for essential matrix, 0 is not)
 	public static int getLabelEssential(FinalizedData fd) {
 		return fd.medianReconstErrorEstEssential < 1 && fd.transChordalEstEssential < 0.8 ? 1 : 0;
+//		return fd.essNumGood / fd.summary.numCorrespondences > 0.9 && fd.essNumParallax > 50 ? 1 : 0;
 	}
 
 	// return label indicating whether or not the correspondences come from a pure
@@ -584,7 +590,7 @@ public class ModelTesting {
 
 	public static void testModels() {
 
-		String DATA_FILE = "results/data/TUM_samples_stn_30.dat";
+		String DATA_FILE = "results/data/TUM_samples_stn_3_30.dat";
 //		String DATA_FILE = "results/data/testing-1617851095921-1615348975802.dat";
 
 		// no-noise data models
@@ -599,11 +605,11 @@ public class ModelTesting {
 //		String HOM_MODEL_FILE = "results/models/logreg_HOMOGRAPHY_27-04-2021_22-44-49_rotExcluded-P0.6970-R0.6122-F0.6519.model";
 //		String ROT_MODEL_FILE = "results/models/logreg_ROTATION_27-04-2021_21-59-25-P0.8157-R0.8630-F0.8387.model";
 
-		// stf models
-		String FUN_MODEL_FILE = "results/models/logreg_real_FUNDAMENTAL_28-04-2021_15-30-09-P0.3639-R0.5822-F0.4479.model";
-		String ESS_MODEL_FILE = "results/models/logreg_real_ESSENTIAL_28-04-2021_15-35-38-P0.4290-R0.6453-F0.5154.model";
-		String HOM_MODEL_FILE = "results/models/logreg_real_HOMOGRAPHY_28-04-2021_15-40-33-P0.3725-R0.1166-F0.1776.model";
-		String ROT_MODEL_FILE = "results/models/logreg_real_ROTATION_28-04-2021_15-47-44-P0.8706-R0.7885-F0.8275.model";
+//		// stf models ////
+//		String FUN_MODEL_FILE = "results/models/logreg_real_FUNDAMENTAL_28-04-2021_15-30-09-P0.3639-R0.5822-F0.4479.model";
+//		String ESS_MODEL_FILE = "results/models/logreg_real_ESSENTIAL_28-04-2021_15-35-38-P0.4290-R0.6453-F0.5154.model";
+//		String HOM_MODEL_FILE = "results/models/logreg_real_HOMOGRAPHY_28-04-2021_15-40-33-P0.3725-R0.1166-F0.1776.model";
+//		String ROT_MODEL_FILE = "results/models/logreg_real_ROTATION_28-04-2021_15-47-44-P0.8706-R0.7885-F0.8275.model";
 
 //		// stn_2 models
 //		String FUN_MODEL_FILE = "results/models/stn_train/logreg_real_FUNDAMENTAL_03-05-2021_21-40-51-P0.7943-R0.6619-F0.7221.model";
@@ -616,6 +622,13 @@ public class ModelTesting {
 //		String ESS_MODEL_FILE = "results/models/stf_train/logreg_real_ESSENTIAL_04-05-2021_13-12-13-P0.7452-R0.7175-F0.7311.model";
 //		String HOM_MODEL_FILE = "results/models/stf_train/logreg_real_HOMOGRAPHY_04-05-2021_13-38-36-P0.6479-R0.3966-F0.4920.model";
 //		String ROT_MODEL_FILE = "results/models/stf_train/logreg_real_ROTATION_04-05-2021_13-22-35-P0.9032-R0.6222-F0.7368.model";
+
+		// updated models (ORBSLAM labeling)
+		String FUN_MODEL_FILE = "results/models/updated_models_sept_15/logreg_real_FUNDAMENTAL_13-09-2021_15-06-08-P0.5434-R0.7797-F0.6405.model";
+		String ESS_MODEL_FILE = "results/models/updated_models_sept_15/logreg_real_ESSENTIAL_13-09-2021_15-14-57-P0.6239-R0.8454-F0.7179.model";
+		String HOM_MODEL_FILE = "results/models/updated_models_sept_15/logreg_real_HOMOGRAPHY_13-09-2021_15-20-42-P0.4492-R0.4543-F0.4517.model";
+
+		String ROT_MODEL_FILE = "results/models/stf_train/logreg_real_ROTATION_04-05-2021_13-22-35-P0.9032-R0.6222-F0.7368.model";
 
 		// get the models
 		MultiLayerNetwork modelFun = null;
@@ -631,6 +644,19 @@ public class ModelTesting {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		// testing
+		Map<String, INDArray> paramsFun = modelFun.paramTable();
+		Utils.pl("PARAMS fun");
+		Utils.pl(paramsFun);
+
+		Map<String, INDArray> paramsEss = modelEss.paramTable();
+		Utils.pl("PARAMS ess");
+		Utils.pl(paramsEss);
+
+		Map<String, INDArray> paramsHom = modelHom.paramTable();
+		Utils.pl("PARAMS hom");
+		Utils.pl(paramsHom);
 
 		// get the data
 		List<FinalizedData> data = loadData(DATA_FILE);
@@ -739,7 +765,14 @@ public class ModelTesting {
 		DataSet testData = new DataSet(testInput, testLabels);
 
 		// create output for every training sample
+		long start = System.currentTimeMillis();
 		INDArray output = model.output(testData.getFeatures());
+		long end = System.currentTimeMillis();
+		long totalTime = end - start;
+		Utils.pl("Total prediction time: " + totalTime + "ms");
+		Utils.pl("Number of rows: " + testInput.rows());
+		Utils.pl("Avg prediction time: " + (totalTime / (double) testInput.rows()) + "ms");
+
 //		System.out.println(output);
 
 		// let Evaluation prints stats how often the right output had the highest value
@@ -968,16 +1001,25 @@ public class ModelTesting {
 	public static double[] getPredictions(MultiLayerNetwork model, List<FinalizedData> data) {
 
 		// create input array (normalize data)
+		Utils.pl("row:");
 		INDArray input = Nd4j.zeros(data.size(), 23);
 		for (int i = 0; i < data.size(); i++) {
 			INDArray row = Nd4j.create(data.get(i).summary.getArray());
+			if (i == 0) {
+				Utils.pl(row);
+			}
+
 			input.putRow(i, row);
 		}
 
 		INDArray output = model.output(input);
 
+		Utils.pl("prediction:");
 		double[] predictions = new double[output.rows()];
 		for (int i = 0; i < output.rows(); i++) {
+			if (i == 0) {
+				Utils.pl(output.getDouble(i));
+			}
 			predictions[i] = output.getDouble(i);
 		}
 

@@ -138,6 +138,16 @@ public class Sample {
 	public double transChordalEstHomography = 0;
 	public double transChordalEstEssential = 0;
 
+	///////////////////////////////////////////////////////////////////////////////
+	//////////////////////// RECONSTRUCTION CRITERIA //////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	public double funNumGood = 0;
+	public double funNumParallax = 0;
+	public double essNumGood = 0;
+	public double essNumParallax = 0;
+	public double homNumGood = 0;
+	public double homNumParallax = 0;
+
 	public Sample() {
 	}
 
@@ -208,6 +218,28 @@ public class Sample {
 
 		// calculate error metrics
 		this.errorMetrics();
+
+		// robust reconstruction metrics
+		Dbl funParallax = new Dbl(0);
+		Dbl funGood = new Dbl(0);
+		Dbl homParallax = new Dbl(0);
+		Dbl homGood = new Dbl(0);
+		Dbl essParallax = new Dbl(0);
+		Dbl essGood = new Dbl(0);
+
+		ComputerVision.parallaxAndGoodPoints(this.primaryCamera.getHomogeneousMatrix(), this.poseEstFun, cameraParams,
+				this.estPointsEstFun, this.correspondences, funParallax, funGood);
+		ComputerVision.parallaxAndGoodPoints(this.primaryCamera.getHomogeneousMatrix(), this.poseEstHomography,
+				cameraParams, this.estPointsEstHomography, this.correspondences, homParallax, homGood);
+		ComputerVision.parallaxAndGoodPoints(this.primaryCamera.getHomogeneousMatrix(), this.poseEstEssential,
+				cameraParams, this.estPointsEstEssential, this.correspondences, essParallax, essGood);
+
+		this.funNumGood = funGood.getValue();
+		this.funNumParallax = funParallax.getValue();
+		this.homNumGood = homGood.getValue();
+		this.homNumParallax = homParallax.getValue();
+		this.essNumGood = essGood.getValue();
+		this.essNumParallax = essParallax.getValue();
 
 	}
 
